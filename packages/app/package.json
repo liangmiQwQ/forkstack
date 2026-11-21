@@ -15,12 +15,16 @@
   },
   "dependencies": {
     "@void/react": "catalog:",
+    "hono": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@iconify-json/lucide": "catalog:",
+    "@iconify-json/simple-icons": "catalog:",
     "@types/react": "catalog:",
     "oxc-transform-react": "catalog:",
+    "unocss": "catalog:",
     "void": "catalog:"
   }
 }

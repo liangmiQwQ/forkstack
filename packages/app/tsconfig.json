@@ -16,5 +16,5 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true
   },
-  "include": ["src", "pages", "routes", "middleware", "tests"]
+  "include": ["src", "pages", "routes", "middleware", "tests", "auth.ts", "env.ts"]
 }
