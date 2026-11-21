@@ -20,9 +20,6 @@ export default function AccountSettingsPage({ profile, scopes }: Props) {
           )}
           <div className='flex min-w-0 flex-col'>
             <span className='font-medium'>{profile.name}</span>
-            {profile.githubLogin && (
-              <span className='font-mono text-sm text-neutral-500'>@{profile.githubLogin}</span>
-            )}
             <span className='truncate text-sm text-neutral-500'>{profile.email}</span>
           </div>
         </div>

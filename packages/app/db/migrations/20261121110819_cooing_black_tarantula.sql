@@ -37,8 +37,7 @@ CREATE TABLE `user` (
 	`emailVerified` integer NOT NULL,
 	`image` text,
 	`createdAt` integer NOT NULL,
-	`updatedAt` integer NOT NULL,
-	`githubLogin` text
+	`updatedAt` integer NOT NULL
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `user_email_unique` ON `user` (`email`);--> statement-breakpoint
