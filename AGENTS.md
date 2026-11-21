@@ -16,7 +16,7 @@ All workspace packages live under `packages/`.
 
 ## Rules
 
-For visual design decisions, use [design.md](./design.md) as the starting point.
+For visual design decisions, use [DESIGN.md](./DESIGN.md) as the starting point.
 
 Keep JavaScript dependency versions in the default catalog in `pnpm-workspace.yaml`, and reference them with `catalog:` in package manifests.
 

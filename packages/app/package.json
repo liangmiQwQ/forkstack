@@ -20,7 +20,6 @@
   },
   "devDependencies": {
     "@types/react": "catalog:",
-    "@types/react-dom": "catalog:",
     "oxc-transform-react": "catalog:",
     "void": "catalog:"
   }
