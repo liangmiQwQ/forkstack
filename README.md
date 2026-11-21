@@ -1,4 +1,4 @@
-# Forkstack
+# forkstack
 
 [GitHub's native stacked PRs](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs#where-can-you-use-stacked-pull-requests) requires all branches to be in the same repository.
 
