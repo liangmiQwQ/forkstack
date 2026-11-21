@@ -16,6 +16,8 @@ All workspace packages live under `packages/`.
 
 ## Rules
 
+For visual design decisions, use [design.md](./design.md) as the starting point.
+
 Keep JavaScript dependency versions in the default catalog in `pnpm-workspace.yaml`, and reference them with `catalog:` in package manifests.
 
 As a opensource project, not all contributors are required to install Vite+ as `vp` globally, so when you are adding a script / task, using `package.json#scripts` to ensure the accessiblility for external contributors.
