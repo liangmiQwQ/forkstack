@@ -6,10 +6,11 @@ import { requireAuth } from 'void/auth'
 import { getGithubToken } from '../../src/account.ts'
 import { findStacks, groupCandidates, isManaged } from '../../src/discovery.ts'
 import { fetchBodies, searchOpenPrs } from '../../src/github.ts'
+import { cacheStacks, readCachedStacks } from '../../src/stack-cache.ts'
 
 export type Props = InferProps<typeof loader>
 
-export const loader = defineHandler(c => {
+export const loader = defineHandler(async c => {
   const user = requireAuth(c, { throwRedirect: '/login' })
   const login = user.githubLogin
   if (!login) {
@@ -26,7 +27,13 @@ export const loader = defineHandler(c => {
     .then(prs => groupCandidates(prs).flatMap(group => findStacks(group)))
 
   return {
-    stacks: defer(() => stacksPromise),
+    // Stacks from the last visit fill the first screen while GitHub answers.
+    cachedStacks: await readCachedStacks(user.id),
+    stacks: defer(async () => {
+      const stacks = await stacksPromise
+      await cacheStacks(user.id, stacks)
+      return stacks
+    }),
     // Aligned with `stacks`: entry `i` tells whether stack `i` is already managed by forkstack.
     managed: defer(async () => {
       const stacks = await stacksPromise

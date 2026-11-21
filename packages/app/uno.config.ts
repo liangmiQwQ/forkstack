@@ -22,6 +22,7 @@ export default defineConfig({
       'btn bg-neutral-900 text-white hover:opacity-90 dark:bg-white dark:text-neutral-900',
     'btn-danger': 'btn border border-red-600/30 text-red-700 hover:bg-red-600/5 dark:text-red-400',
     card: 'rounded-xl border border-neutral-500/20',
+    skeleton: 'rounded-md bg-neutral-500/10 motion-safe:animate-pulse',
     'nav-link':
       'flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-neutral-500 hover:text-current data-[void-active]:bg-neutral-500/10 data-[void-active]:text-current'
   }

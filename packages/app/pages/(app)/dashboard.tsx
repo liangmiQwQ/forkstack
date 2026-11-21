@@ -3,7 +3,7 @@ import { Suspense, use } from 'react'
 import type { PullRequest } from '../../src/discovery.ts'
 import type { Props } from './dashboard.server.ts'
 
-export default function DashboardPage({ stacks, managed }: Props) {
+export default function DashboardPage({ cachedStacks, stacks, managed }: Props) {
   return (
     <div className='flex flex-col gap-6'>
       <div className='flex flex-col gap-1'>
@@ -14,23 +14,30 @@ export default function DashboardPage({ stacks, managed }: Props) {
       </div>
 
       {/* oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- Suspense takes its fallback as a prop, and the React Compiler memoizes it. */}
-      <Suspense fallback={<p className='text-sm text-neutral-500'>Loading pull requests…</p>}>
-        <StackList stacks={stacks} managed={managed} />
+      <Suspense fallback={<CachedStackList stacks={cachedStacks} />}>
+        <FreshStackList stacks={stacks} managed={managed} />
       </Suspense>
     </div>
   )
 }
 
-function StackList({ stacks, managed }: Props) {
-  const resolved = use(stacks)
+function CachedStackList({ stacks }: { stacks: PullRequest[][] | null }) {
+  return stacks ? <StackList stacks={stacks} /> : <StackListSkeleton />
+}
 
-  if (resolved.length === 0) {
+function FreshStackList({ stacks, managed }: Pick<Props, 'stacks' | 'managed'>) {
+  return <StackList stacks={use(stacks)} managed={managed} />
+}
+
+// Without `managed`, the list comes from the cache and its order may not match `managed`, so statuses wait for fresh stacks.
+function StackList({ stacks, managed }: { stacks: PullRequest[][]; managed?: Props['managed'] }) {
+  if (stacks.length === 0) {
     return <EmptyState />
   }
 
   return (
     <ul className='flex flex-col gap-4'>
-      {resolved.map((stack, index) => (
+      {stacks.map((stack, index) => (
         <li key={stack[0].url} className='card flex flex-col gap-4 p-5'>
           <StackHeader pr={stack[0]} />
           <div className='flex flex-col gap-2'>
@@ -40,10 +47,14 @@ function StackList({ stacks, managed }: Props) {
             </h2>
             <PrList prs={stack} ordered />
           </div>
-          {/* oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- Suspense takes its fallback as a prop, and the React Compiler memoizes it. */}
-          <Suspense fallback={<p className='text-sm text-neutral-500'>Checking descriptions…</p>}>
-            <ManagedStatus managed={managed} index={index} />
-          </Suspense>
+          {managed ? (
+            // oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- Suspense takes its fallback as a prop, and the React Compiler memoizes it.
+            <Suspense fallback={<StatusSkeleton />}>
+              <ManagedStatus managed={managed} index={index} />
+            </Suspense>
+          ) : (
+            <StatusSkeleton />
+          )}
         </li>
       ))}
     </ul>
@@ -115,4 +126,44 @@ function EmptyState() {
       </a>
     </section>
   )
+}
+
+// Mirrors the layout of a stack card, so the page does not jump when stacks arrive.
+function StackListSkeleton() {
+  return (
+    <ul className='flex flex-col gap-4' aria-busy='true' aria-label='Loading pull requests'>
+      {[3, 2].map(size => (
+        <li key={size} className='card flex flex-col gap-4 p-5'>
+          <Skeleton className='h-5 w-72 max-w-full' />
+          <div className='flex flex-col gap-2'>
+            <Skeleton className='h-5 w-44' />
+            <PrListSkeleton size={size} />
+          </div>
+          <StatusSkeleton />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function PrListSkeleton({ size }: { size: number }) {
+  return (
+    <div className='flex flex-col gap-1'>
+      {Array.from({ length: size }, (_, index) => (
+        <div key={index} className='flex items-center gap-3 px-2 py-1.5'>
+          <Skeleton className='h-5 w-10' />
+          <Skeleton className='h-5 flex-1' />
+          <Skeleton className='hidden h-4 w-28 sm:block' />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function StatusSkeleton() {
+  return <Skeleton className='h-5 w-52' />
+}
+
+function Skeleton({ className }: { className: string }) {
+  return <div className={`skeleton ${className}`} />
 }
