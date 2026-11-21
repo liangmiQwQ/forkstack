@@ -1,6 +1,5 @@
+import { accountTable } from '@auth-schema'
 import { and, db, eq } from 'void/db'
-
-import { accountTable } from '../.void/better-auth-schema.ts'
 
 export async function getGithubScopes(userId: string): Promise<string[]> {
   const account = await db

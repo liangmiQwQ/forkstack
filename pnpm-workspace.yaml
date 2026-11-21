@@ -4,7 +4,7 @@ packages:
 catalog:
   '@iconify-json/lucide': ^1.2.157
   '@iconify-json/simple-icons': ^1.2.103
-  '@liangmi/vp-config': ^1.0.1
+  '@liangmi/vp-config': ^1.0.2
   '@types/node': ^26.6.6
   '@types/react': ^19.3.0
   '@void/react': ^1.11.0
@@ -29,3 +29,6 @@ peerDependencyRules:
 allowBuilds:
   esbuild: true
   workerd: true
+
+minimumReleaseAgeExclude:
+  - '@liangmi/vp-config@1.0.2'

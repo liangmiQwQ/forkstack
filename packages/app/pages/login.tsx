@@ -6,8 +6,6 @@ import type { Props } from './login.server.ts'
 export default function LoginPage({ error }: Props) {
   const [pending, setPending] = useState(false)
 
-  // React Compiler memoizes this handler, so the react-perf rule does not apply.
-  // oxlint-disable-next-line react-perf/jsx-no-new-function-as-prop
   function signIn() {
     setPending(true)
     void auth.signIn.social({

@@ -14,7 +14,12 @@
     "esModuleInterop": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "void/db": ["./.void/db.d.ts"],
+      "void/routes": ["./.void/routes.d.ts"],
+      "@auth-schema": ["./.void/better-auth-schema.ts"]
+    }
   },
   "include": ["src", "pages", "routes", "middleware", "tests", "auth.ts", "env.ts"]
 }
