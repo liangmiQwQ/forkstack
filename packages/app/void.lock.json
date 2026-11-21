@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "source": {
+    "routes": [
+      {
+        "pattern": "forkstack.dev",
+        "custom_domain": true
+      }
+    ]
+  },
+  "resolved": {
+    "account_id": "e1d7061b7bb4500473f0e5da1aa6651c",
+    "compatibility_date": "2026-02-24",
+    "name": "forkstack-app",
+    "routes": [
+      {
+        "pattern": "forkstack.dev",
+        "custom_domain": true
+      }
+    ]
+  },
+  "text": "// void:published-traffic:v1:eyJ3b3JrZXJzX2RldiI6ZmFsc2UsInByZXZpZXdfdXJscyI6ZmFsc2UsInJvdXRlcyI6W3sicGF0dGVybiI6ImZvcmtzdGFjay5kZXYiLCJjdXN0b21fZG9tYWluIjp0cnVlfV19\n{\n  \"account_id\": \"e1d7061b7bb4500473f0e5da1aa6651c\",\n  \"compatibility_date\": \"2026-02-24\",\n  \"name\": \"forkstack-app\",\n  \"routes\": [\n    {\n      \"pattern\": \"forkstack.dev\",\n      \"custom_domain\": true\n    }\n  ]\n}\n"
+}
