@@ -76,9 +76,10 @@ interface BodiesResult {
 }
 
 // Repos the user owns are excluded, since a fork stack always merges into someone else's repository.
-export async function searchOpenPrs(token: string, login: string): Promise<PullRequest[]> {
+// `@me` resolves to the token's owner, so the GitHub login never needs to be stored.
+export async function searchOpenPrs(token: string): Promise<PullRequest[]> {
   const request = createClient(token)
-  const q = `is:pr is:open author:${login} -user:${login} archived:false`
+  const q = 'is:pr is:open author:@me -user:@me archived:false'
   const prs: PullRequest[] = []
 
   let after: string | null = null

@@ -9,14 +9,10 @@ export default defineAuth(({ defaults, env }) => ({
       clientSecret: String(env.AUTH_GITHUB_CLIENT_SECRET),
       // An OAuth App token acts as the user on any public repo, which a GitHub App user token cannot do on upstream repos it isn't installed on.
       scope: ['public_repo'],
-      overrideUserInfoOnSignIn: true,
-      mapProfileToUser: profile => ({ githubLogin: profile.login })
+      overrideUserInfoOnSignIn: true
     }
   },
   user: {
-    additionalFields: {
-      githubLogin: { type: 'string', required: false, input: false }
-    },
     deleteUser: { enabled: true }
   },
   account: {

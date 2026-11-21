@@ -1,4 +1,3 @@
-import { HTTPException } from 'hono/http-exception'
 import { defer, defineHandler, defineHead } from 'void'
 import type { InferProps } from 'void'
 import { requireAuth } from 'void/auth'
@@ -12,18 +11,12 @@ export type Props = InferProps<typeof loader>
 
 export const loader = defineHandler(async c => {
   const user = requireAuth(c, { throwRedirect: '/login' })
-  const login = user.githubLogin
-  if (!login) {
-    throw new HTTPException(401, {
-      message: 'Sign out and sign in again to sync your GitHub account.'
-    })
-  }
 
   // Both GitHub requests are deferred so the page renders at once. The search returns commits, so stacks show right after it.
   // The second request reads descriptions for forkstack markers, so managed stacks are recognized even if the database is lost.
   const tokenPromise = getGithubToken(c, user.id)
   const stacksPromise = tokenPromise
-    .then(token => searchOpenPrs(token, login))
+    .then(searchOpenPrs)
     .then(prs => groupCandidates(prs).flatMap(group => findStacks(group)))
 
   return {
