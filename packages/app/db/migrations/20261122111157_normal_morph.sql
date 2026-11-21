@@ -1,3 +1,20 @@
+CREATE TABLE `stack_pr` (
+	`prId` text PRIMARY KEY NOT NULL,
+	`stackId` text NOT NULL,
+	`position` integer NOT NULL,
+	`commentId` text,
+	FOREIGN KEY (`stackId`) REFERENCES `stack`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `stack_pr_stackId_idx` ON `stack_pr` (`stackId`);--> statement-breakpoint
+CREATE TABLE `stack` (
+	`id` text PRIMARY KEY NOT NULL,
+	`userId` text NOT NULL,
+	`createdAt` integer NOT NULL,
+	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `stack_userId_idx` ON `stack` (`userId`);--> statement-breakpoint
 CREATE TABLE `account` (
 	`id` text PRIMARY KEY NOT NULL,
 	`accountId` text NOT NULL,

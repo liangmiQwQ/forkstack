@@ -1,9 +1,110 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "5acc9898-1aa4-49ac-928a-8a624a79e77f",
+  "id": "a0356852-9fe1-495b-b910-c63a7b1defb1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
+    "stack_pr": {
+      "name": "stack_pr",
+      "columns": {
+        "prId": {
+          "name": "prId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "stackId": {
+          "name": "stackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "commentId": {
+          "name": "commentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "stack_pr_stackId_idx": {
+          "name": "stack_pr_stackId_idx",
+          "columns": ["stackId"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "stack_pr_stackId_stack_id_fk": {
+          "name": "stack_pr_stackId_stack_id_fk",
+          "tableFrom": "stack_pr",
+          "tableTo": "stack",
+          "columnsFrom": ["stackId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "stack": {
+      "name": "stack",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "stack_userId_idx": {
+          "name": "stack_userId_idx",
+          "columns": ["userId"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "stack_userId_user_id_fk": {
+          "name": "stack_userId_user_id_fk",
+          "tableFrom": "stack",
+          "tableTo": "user",
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "account": {
       "name": "account",
       "columns": {
