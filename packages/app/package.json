@@ -14,6 +14,7 @@
     "test": "vp run ctest"
   },
   "dependencies": {
+    "@octokit/graphql": "catalog:",
     "@void/react": "catalog:",
     "hono": "catalog:",
     "react": "catalog:",
