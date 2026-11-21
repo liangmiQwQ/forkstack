@@ -18,7 +18,8 @@
     "@void/react": "catalog:",
     "hono": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "valibot": "catalog:"
   },
   "devDependencies": {
     "@iconify-json/lucide": "catalog:",

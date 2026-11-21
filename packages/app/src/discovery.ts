@@ -20,6 +20,10 @@ export interface PullRequest {
 /** Bodies of the bot's comments on each PR, keyed by PR URL since numbers repeat across repositories. */
 export type CommentsByPr = Map<string, string[]>
 
+export function discoverStacks(prs: PullRequest[]): PullRequest[][] {
+  return groupCandidates(prs).flatMap(group => findStacks(group))
+}
+
 // Groups PRs that could form a fork stack: same base repo and branch, with branches in the same fork.
 export function groupCandidates(prs: PullRequest[]): PullRequest[][] {
   const groups = new Map<string, PullRequest[]>()

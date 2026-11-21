@@ -16,6 +16,7 @@ catalog:
   react-dom: ^19.3.1
   typescript: ^7.0.2
   unocss: ^66.13.0
+  valibot: ^1.5.0
   vite: npm:@voidzero-dev/vite-plus-core@8.3.8000
   vite-plus: 1.7.0
   void: ^1.11.0
