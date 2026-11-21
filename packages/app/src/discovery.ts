@@ -1,4 +1,6 @@
 export interface PullRequest {
+  /** GitHub's GraphQL node ID. */
+  id: string
   number: number
   title: string
   url: string

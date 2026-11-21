@@ -5,6 +5,7 @@ import type { PullRequest } from '../src/discovery.ts'
 
 function pr(number: number, overrides: Partial<PullRequest> = {}): PullRequest {
   return {
+    id: `node-${number}`,
     number,
     title: `PR ${number}`,
     url: url(number),
