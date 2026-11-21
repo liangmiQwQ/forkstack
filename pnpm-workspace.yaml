@@ -2,15 +2,19 @@ packages:
   - packages/*
 
 catalog:
-  '@liangmi/vp-config': ^1.0.1
+  '@iconify-json/lucide': ^1.2.157
+  '@iconify-json/simple-icons': ^1.2.103
+  '@liangmi/vp-config': ^1.0.2
   '@types/node': ^26.6.6
   '@types/react': ^19.3.0
   '@void/react': ^1.11.0
   bumpp: ^12.3.0
+  hono: ^4.13.19
   oxc-transform-react: ^0.156.0
   react: ^19.3.1
   react-dom: ^19.3.1
   typescript: ^7.0.2
+  unocss: ^66.13.0
   vite: npm:@voidzero-dev/vite-plus-core@8.3.8000
   vite-plus: 1.7.0
   void: ^1.11.0
@@ -25,3 +29,6 @@ peerDependencyRules:
 allowBuilds:
   esbuild: true
   workerd: true
+
+minimumReleaseAgeExclude:
+  - '@liangmi/vp-config@1.0.2'

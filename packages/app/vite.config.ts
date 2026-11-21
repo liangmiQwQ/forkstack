@@ -1,7 +1,12 @@
 import { liangmi } from '@liangmi/vp-config'
 import { voidReact } from '@void/react/plugin'
+import UnoCSS from 'unocss/vite'
 import { voidPlugin } from 'void'
 
 export default liangmi({
-  plugins: [voidPlugin(), voidReact({ react: { compiler: true } })]
+  plugins: [
+    voidPlugin(),
+    voidReact({ react: { compiler: true } }),
+    UnoCSS(`${import.meta.dirname}/uno.config.ts`)
+  ]
 })
