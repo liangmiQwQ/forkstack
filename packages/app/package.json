@@ -8,7 +8,7 @@
   "scripts": {
     "build": "vp run cbuild",
     "deploy": "void deploy",
-    "dev": "vp dev",
+    "dev": "vp dev --strictPort",
     "postinstall": "void prepare",
     "preview": "vp preview",
     "test": "vp run ctest"

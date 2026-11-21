@@ -17,6 +17,7 @@
   "scripts": {
     "build": "vp run -r build",
     "check": "vp run ccheck",
+    "dev": "vp run @forkstack/app#dev",
     "prepare": "vp config",
     "release": "bumpp -r",
     "test": "vp run -r test"
