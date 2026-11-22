@@ -7,7 +7,7 @@ import { requireAuth } from 'void/auth'
 import { getGithubToken } from '../../src/account.ts'
 import { fetchPrs } from '../../src/github.ts'
 import { cacheSavedPrs, readCachedSavedPrs } from '../../src/stack-cache.ts'
-import { unmarkPrs } from '../../src/stack-markers.ts'
+import { refreshMarkers, unmarkPrs } from '../../src/stack-markers.ts'
 import { deleteStack, listStacks, removePr } from '../../src/stack.ts'
 
 export type Props = InferProps<typeof loader>
@@ -65,6 +65,13 @@ export const actions = {
 
     await removePr(pr.id)
     await unmarkPrs([pr])
+
+    const rest = { ...stack, prs: stack.prs.filter(other => other !== pr) }
+    const prs = await fetchPrs(
+      await getGithubToken(c, user.id),
+      rest.prs.map(other => other.id)
+    )
+    await refreshMarkers(rest, prs)
   })
 }
 

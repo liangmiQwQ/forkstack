@@ -1,19 +1,33 @@
 import { env } from 'void/env'
 
 import type { CommentsByPr, PullRequest } from './discovery.ts'
-import { addComment, deleteComment, fetchViewerComments } from './github.ts'
+import { addComment, deleteComment, fetchViewerComments, updateComment } from './github.ts'
 import { renderComment } from './marker.ts'
 import { saveCommentId } from './stack.ts'
-import type { StoredPr } from './stack.ts'
+import type { StoredPr, StoredStack } from './stack.ts'
 
 // Markers are bot comments, since organizations often block OAuth apps from editing PRs and external contributors can't approve them.
 export async function markPrs(prs: PullRequest[], stackId: string): Promise<void> {
-  const body = renderComment(stackId)
-
-  for (const pr of prs) {
+  for (const [index, pr] of prs.entries()) {
     // GitHub asks clients to send mutations one at a time, or it may apply its secondary rate limit.
-    const commentId = await addComment(env.GITHUB_BOT_TOKEN, pr.id, body)
+    const commentId = await addComment(
+      env.GITHUB_BOT_TOKEN,
+      pr.id,
+      renderComment(stackId, prs, index)
+    )
     await saveCommentId(pr.id, commentId)
+  }
+}
+
+// Rewrites the comments after the stack's PRs change, since each one lists the whole stack.
+export async function refreshMarkers(stack: StoredStack, prs: PullRequest[]): Promise<void> {
+  const commentIds = new Map(stack.prs.map(pr => [pr.id, pr.commentId]))
+
+  for (const [index, pr] of prs.entries()) {
+    const commentId = commentIds.get(pr.id)
+    if (commentId) {
+      await updateComment(env.GITHUB_BOT_TOKEN, commentId, renderComment(stack.id, prs, index))
+    }
   }
 }
 

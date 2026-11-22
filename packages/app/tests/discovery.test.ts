@@ -1,34 +1,8 @@
 import { expect, it } from 'vite-plus/test'
 
 import { findStacks, groupCandidates, isManaged } from '../src/discovery.ts'
-import type { PullRequest } from '../src/discovery.ts'
 import { renderComment } from '../src/marker.ts'
-
-function pr(number: number, overrides: Partial<PullRequest> = {}): PullRequest {
-  return {
-    id: `node-${number}`,
-    number,
-    title: `PR ${number}`,
-    url: url(number),
-    baseRepo: 'upstream/repo',
-    baseRef: 'main',
-    headRepo: 'me/repo',
-    headRef: `branch-${number}`,
-    headOid: `oid-${number}`,
-    commits: [`oid-${number}`],
-    state: 'OPEN',
-    isDraft: false,
-    reviewDecision: null,
-    updatedAt: '2026-01-01T00:00:00Z',
-    comments: 0,
-    checks: null,
-    ...overrides
-  }
-}
-
-function url(number: number) {
-  return `https://github.com/upstream/repo/pull/${number}`
-}
+import { pr, url } from './fixtures.ts'
 
 it('groups fork PRs that share a base branch and a head fork', () => {
   const groups = groupCandidates([
@@ -65,7 +39,7 @@ it('skips stacks that branch into more than one PR', () => {
 
 it('treats a stack as managed when any of its PRs has a bot comment with a forkstack marker', () => {
   const stack = [pr(1), pr(2)]
-  const managed = new Map([[url(2), ['Thanks!', renderComment('stack')]]])
+  const managed = new Map([[url(2), ['Thanks!', renderComment('stack', stack, 1)]]])
   const unmanaged = new Map([[url(1), ['Thanks!']]])
 
   expect(isManaged(stack, managed)).toBe(true)
