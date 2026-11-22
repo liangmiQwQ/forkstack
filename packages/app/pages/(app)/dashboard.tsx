@@ -1,225 +1,213 @@
-import { Form, useForm } from '@void/react'
-import { Suspense, use } from 'react'
-import type { ReactNode } from 'react'
+import { Form, Link, useForm } from '@void/react'
+import { Suspense, use, useId, useRef } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 
+import {
+  PendingIcon,
+  PrList,
+  PrRow,
+  Skeleton,
+  StackRepo,
+  SyncStatus
+} from '../../src/components/stack.tsx'
 import type { PullRequest } from '../../src/discovery.ts'
 import type { Props } from './dashboard.server.ts'
 
-const DEFAULT_SKELETON_SIZES = [3, 2]
+type SavedStack = Props['saved'][number]
 
-export default function DashboardPage({
-  savedSizes,
-  savedStacks,
-  cachedStacks,
-  stacks,
-  managed
-}: Props) {
+export default function DashboardPage({ saved, cachedPrs, prs }: Props) {
+  const prCount = saved.reduce((count, stack) => count + stack.prIds.length, 0)
+
   return (
-    <div className='flex flex-col gap-10'>
-      {savedSizes.length > 0 && (
-        <Section title='Your stacks' description='Stacks forkstack manages for you, bottom first.'>
-          {/* oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- Suspense takes its fallback as a prop, and the React Compiler memoizes it. */}
-          <Suspense fallback={<StackListSkeleton sizes={savedSizes} />}>
-            <SavedStackList stacks={savedStacks} />
-          </Suspense>
-        </Section>
-      )}
+    <div className='flex flex-col gap-8'>
+      <header className='flex flex-wrap items-end justify-between gap-4'>
+        <div className='flex flex-col gap-1'>
+          <h1 className='text-2xl font-semibold'>Stacks</h1>
+          <p className='text-sm text-neutral-500'>
+            {saved.length > 0
+              ? `${saved.length} ${saved.length === 1 ? 'stack' : 'stacks'} · ${prCount} pull requests, linked by a forkstack comment on each one`
+              : 'Pull requests you link as stacks show up here.'}
+          </p>
+        </div>
+        {saved.length > 0 && (
+          <div className='flex items-center gap-4'>
+            <SyncStatus data={prs} />
+            <Link href='/stacks/new' className='btn-solid'>
+              <span className='i-lucide-layers-plus' />
+              Link a stack
+            </Link>
+          </div>
+        )}
+      </header>
 
-      <Section
-        title='Possible stacks'
-        description='Open pull requests from one of your forks that build on each other.'
-      >
-        {/* oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- Suspense takes its fallback as a prop, and the React Compiler memoizes it. */}
-        <Suspense fallback={<CachedStackList stacks={cachedStacks} />}>
-          <FreshStackList stacks={stacks} managed={managed} />
+      {saved.length === 0 ? (
+        <EmptyState />
+      ) : (
+        // oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- Suspense takes its fallback as a prop, and the React Compiler memoizes it.
+        <Suspense fallback={<StackList saved={saved} cachedPrs={cachedPrs} />}>
+          <FreshStackList saved={saved} cachedPrs={cachedPrs} prs={prs} />
         </Suspense>
-      </Section>
+      )}
     </div>
   )
 }
 
-function Section({
-  title,
-  description,
-  children
-}: {
-  title: string
-  description: string
-  children: ReactNode
-}) {
-  return (
-    <section className='flex flex-col gap-6'>
-      <div className='flex flex-col gap-1'>
-        <h2 className='text-2xl font-semibold'>{title}</h2>
-        <p className='text-sm text-neutral-500'>{description}</p>
-      </div>
-      {children}
-    </section>
-  )
+interface StackSources {
+  cachedPrs: PullRequest[] | null
+  /** PRs fresh from GitHub, or `undefined` while the cache fills the page. */
+  freshPrs?: PullRequest[]
 }
 
-function SavedStackList({ stacks }: { stacks: Props['savedStacks'] }) {
+function FreshStackList({ prs, ...props }: Pick<Props, 'saved' | 'cachedPrs' | 'prs'>) {
+  return <StackList {...props} freshPrs={use(prs)} />
+}
+
+function StackList({ saved, ...sources }: StackSources & { saved: SavedStack[] }) {
   return (
     <ul className='flex flex-col gap-4'>
-      {use(stacks).map(stack => (
-        <li key={stack.id} className='card flex flex-col gap-4 p-5'>
-          {stack.prs[0] && <StackHeader pr={stack.prs[0]} />}
-          {/* A stack needs two PRs, so its PRs can only be removed while it has more. */}
-          <PrList prs={stack.prs} ordered removable={stack.prs.length > 2} />
-          <DeleteStackButton stackId={stack.id} />
+      {saved.map(stack => (
+        <li key={stack.id}>
+          <StackCard stack={stack} {...sources} />
         </li>
       ))}
     </ul>
   )
 }
 
-function RemovePrButton({ pr }: { pr: PullRequest }) {
-  const form = useForm('/dashboard?removePr', { prId: pr.id }, { throwOnError: false })
+function StackCard({ stack, cachedPrs, freshPrs }: StackSources & { stack: SavedStack }) {
+  const prs = pickPrs(stack.prIds, [cachedPrs, freshPrs])
+  if (prs.length === 0 && !freshPrs) {
+    return <StackCardSkeleton size={stack.prIds.length} />
+  }
 
   return (
-    <Form form={form}>
-      <button
-        type='submit'
-        className='btn text-neutral-500 hover:bg-neutral-500/10'
-        disabled={form.pending}
-        aria-label={`Remove #${pr.number} from the stack`}
-        title='Remove from stack'
-      >
-        <span className='i-lucide-circle-minus' />
-      </button>
-    </Form>
+    <article className='card overflow-hidden'>
+      <header className='card-header'>
+        {prs[0] ? (
+          <StackRepo pr={prs[0]} />
+        ) : (
+          <span className='text-sm'>Pull requests not found</span>
+        )}
+        <div className='flex items-center gap-3'>
+          <span className='text-xs text-neutral-500'>{prs.length} pull requests</span>
+          <UnlinkButton stackId={stack.id} />
+        </div>
+      </header>
+      <div className='p-2'>
+        <PrList baseRef={prs[0]?.baseRef ?? ''}>
+          {prs.toReversed().map(pr => (
+            // A stack needs two PRs, so its PRs can only be removed while it has more.
+            <RemovablePrRow key={pr.id} pr={pr} removable={prs.length > 2} />
+          ))}
+        </PrList>
+      </div>
+    </article>
   )
 }
 
-function DeleteStackButton({ stackId }: { stackId: string }) {
+function UnlinkButton({ stackId }: { stackId: string }) {
   const form = useForm('/dashboard?deleteStack', { stackId }, { throwOnError: false })
 
   return (
-    <Form form={form} className='flex flex-col items-start gap-3'>
-      <button type='submit' className='btn-outline' disabled={form.pending}>
-        <span className='i-lucide-trash-2' />
-        Delete stack
-      </button>
-    </Form>
+    <ConfirmButton
+      form={form}
+      icon='i-lucide-unlink'
+      label='Unlink'
+      title='Unlink this stack?'
+      confirmLabel='Unlink stack'
+      pendingLabel='Unlinking'
+    >
+      forkstack deletes its comments from these pull requests and stops managing them. The pull
+      requests, branches, and commits stay as they are, and you can link them again later.
+    </ConfirmButton>
   )
 }
 
-function CreateStackButton({ stack }: { stack: PullRequest[] }) {
-  const form = useForm(
-    '/dashboard?createStack',
-    { prIds: stack.map(pr => pr.id) },
-    { throwOnError: false }
-  )
+function RemovablePrRow({ pr, removable }: { pr: PullRequest; removable: boolean }) {
+  const form = useForm('/dashboard?removePr', { prId: pr.id }, { throwOnError: false })
 
   return (
-    <Form form={form} className='flex flex-col items-start gap-3'>
-      <button type='submit' className='btn-solid' disabled={form.pending}>
-        <span className='i-lucide-layers-plus' />
-        Create stack
-      </button>
-    </Form>
+    <PrRow pr={pr} faded={form.pending}>
+      {removable && (
+        <ConfirmButton
+          form={form}
+          icon='i-lucide-circle-minus'
+          label={`Remove #${pr.number} from this stack`}
+          iconOnly
+          title={`Remove #${pr.number} from this stack?`}
+          confirmLabel='Remove'
+          pendingLabel='Removing'
+        >
+          forkstack deletes its comment from this pull request. The pull request stays open on
+          GitHub, and the rest of the stack stays linked.
+        </ConfirmButton>
+      )}
+    </PrRow>
   )
 }
 
-function CachedStackList({ stacks }: { stacks: PullRequest[][] | null }) {
-  return stacks ? <StackList stacks={stacks} /> : <StackListSkeleton />
-}
-
-function FreshStackList({ stacks, managed }: Pick<Props, 'stacks' | 'managed'>) {
-  return <StackList stacks={use(stacks)} managed={managed} />
-}
-
-// Without `managed`, the list comes from the cache and its order may not match `managed`, so statuses wait for fresh stacks.
-function StackList({ stacks, managed }: { stacks: PullRequest[][]; managed?: Props['managed'] }) {
-  if (stacks.length === 0) {
-    return <EmptyState />
-  }
-
-  return (
-    <ul className='flex flex-col gap-4'>
-      {stacks.map((stack, index) => (
-        <li key={stack[0].url} className='card flex flex-col gap-4 p-5'>
-          <StackHeader pr={stack[0]} />
-          <div className='flex flex-col gap-2'>
-            <h3 className='flex items-center gap-2 text-sm font-medium'>
-              <span className='i-lucide-layers' />
-              Stack of {stack.length}, bottom first
-            </h3>
-            <PrList prs={stack} ordered />
-          </div>
-          {managed ? (
-            <>
-              {/* oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- Suspense takes its fallback as a prop, and the React Compiler memoizes it. */}
-              <Suspense fallback={<StatusSkeleton />}>
-                <ManagedStatus managed={managed} index={index} />
-              </Suspense>
-              <CreateStackButton stack={stack} />
-            </>
-          ) : (
-            <StatusSkeleton />
-          )}
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function StackHeader({ pr }: { pr: PullRequest }) {
-  return (
-    <div className='flex flex-wrap items-center gap-2 font-mono text-sm'>
-      <span>
-        {pr.baseRepo}:{pr.baseRef}
-      </span>
-      <span className='i-lucide-arrow-left text-neutral-500' />
-      <span className='text-neutral-500'>{pr.headRepo}</span>
-    </div>
-  )
-}
-
-function ManagedStatus({ managed, index }: { managed: Props['managed']; index: number }) {
-  if (use(managed)[index]) {
-    return (
-      <p className='flex items-center gap-2 text-sm text-neutral-500'>
-        <span className='i-lucide-check' />
-        Already managed by forkstack
-      </p>
-    )
-  }
-
-  return <p className='text-sm text-neutral-500'>Not managed by forkstack yet.</p>
-}
-
-function PrList({
-  prs,
-  ordered = false,
-  removable = false
+// Both actions change comments on GitHub, so they ask first in a dialog that says what changes and what stays.
+function ConfirmButton({
+  form,
+  icon,
+  label,
+  iconOnly = false,
+  title,
+  confirmLabel,
+  pendingLabel,
+  children
 }: {
-  prs: PullRequest[]
-  ordered?: boolean
-  removable?: boolean
+  form: ComponentProps<typeof Form>['form']
+  icon: string
+  label: string
+  iconOnly?: boolean
+  title: string
+  confirmLabel: string
+  pendingLabel: string
+  /** What the action changes, shown under the title. */
+  children: ReactNode
 }) {
-  const List = ordered ? 'ol' : 'ul'
+  const dialog = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
 
   return (
-    <List className='flex flex-col gap-1'>
-      {prs.map(pr => (
-        <li key={pr.url} className='flex items-center gap-1'>
-          <a
-            href={pr.url}
-            target='_blank'
-            rel='noreferrer'
-            className='flex min-w-0 flex-1 items-baseline gap-3 rounded-lg px-2 py-1.5 hover:bg-neutral-500/10'
-          >
-            <span className='font-mono text-sm text-neutral-500'>#{pr.number}</span>
-            <span className='min-w-0 truncate'>{pr.title}</span>
-            <span className='ml-auto hidden font-mono text-xs text-neutral-500 sm:inline'>
-              {pr.headRef}
-            </span>
-          </a>
-          {removable && <RemovePrButton pr={pr} />}
-        </li>
-      ))}
-    </List>
+    <>
+      <button
+        type='button'
+        className='btn-ghost'
+        disabled={form.pending}
+        aria-label={iconOnly ? label : undefined}
+        title={iconOnly ? label : undefined}
+        onClick={() => dialog.current?.showModal()}
+      >
+        <PendingIcon pending={form.pending} icon={icon} />
+        {!iconOnly && label}
+      </button>
+      <dialog ref={dialog} className='dialog' aria-labelledby={titleId}>
+        <Form form={form} className='flex flex-col gap-4'>
+          <div className='flex flex-col gap-2'>
+            <h2 id={titleId} className='font-semibold'>
+              {title}
+            </h2>
+            <p className='text-sm text-neutral-500'>{children}</p>
+          </div>
+          <div className='flex justify-end gap-2'>
+            <button
+              type='button'
+              className='btn-soft'
+              disabled={form.pending}
+              onClick={() => dialog.current?.close()}
+            >
+              Cancel
+            </button>
+            <button type='submit' className='btn-danger' disabled={form.pending}>
+              <PendingIcon pending={form.pending} icon={icon} />
+              {form.pending ? pendingLabel : confirmLabel}
+            </button>
+          </div>
+        </Form>
+      </dialog>
+    </>
   )
 }
 
@@ -227,56 +215,42 @@ function EmptyState() {
   return (
     <section className='card flex flex-col items-center gap-3 px-6 py-16 text-center'>
       <span className='i-lucide-layers text-3xl text-neutral-500' />
-      <h3 className='font-medium'>No possible stacks</h3>
+      <h2 className='font-medium'>No stacks yet</h2>
       <p className='max-w-sm text-sm text-neutral-500'>
-        Open pull requests from the same fork into the same branch, each built on the one below it,
-        and they will show up here.
+        forkstack finds open pull requests from your forks that build on each other. Link them as a
+        stack to manage them here.
       </p>
-      <a href='https://github.com/pulls' target='_blank' rel='noreferrer' className='btn-soft mt-2'>
-        <span className='i-simple-icons-github' />
-        Your pull requests on GitHub
-      </a>
+      <Link href='/stacks/new' className='btn-solid mt-2'>
+        <span className='i-lucide-search' />
+        Find stacks
+      </Link>
     </section>
   )
 }
 
-// Mirrors the layout of a stack card, so the page does not jump when stacks arrive.
-function StackListSkeleton({ sizes = DEFAULT_SKELETON_SIZES }: { sizes?: number[] }) {
+// Mirrors the layout of a stack card, so the page does not jump when PRs arrive.
+function StackCardSkeleton({ size }: { size: number }) {
   return (
-    <ul className='flex flex-col gap-4' aria-busy='true' aria-label='Loading pull requests'>
-      {sizes.map((size, index) => (
-        // oxlint-disable-next-line react/no-array-index-key -- Skeleton cards never reorder, and two stacks can share a size.
-        <li key={index} className='card flex flex-col gap-4 p-5'>
-          <Skeleton className='h-5 w-72 max-w-full' />
-          <div className='flex flex-col gap-2'>
-            <Skeleton className='h-5 w-44' />
-            <PrListSkeleton size={size} />
+    <div className='card overflow-hidden' aria-busy='true' aria-label='Loading pull requests'>
+      <div className='card-header'>
+        <Skeleton className='h-5 w-72 max-w-full' />
+        <Skeleton className='h-5 w-32' />
+      </div>
+      <div className='flex flex-col p-2'>
+        {Array.from({ length: size }, (_, index) => (
+          <div key={index} className='flex items-center gap-3 py-1.5 pr-2 pl-8'>
+            <Skeleton className='h-5 w-10' />
+            <Skeleton className='h-5 flex-1' />
+            <Skeleton className='hidden h-4 w-28 sm:block' />
           </div>
-          <StatusSkeleton />
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function PrListSkeleton({ size }: { size: number }) {
-  return (
-    <div className='flex flex-col gap-1'>
-      {Array.from({ length: size }, (_, index) => (
-        <div key={index} className='flex items-center gap-3 px-2 py-1.5'>
-          <Skeleton className='h-5 w-10' />
-          <Skeleton className='h-5 flex-1' />
-          <Skeleton className='hidden h-4 w-28 sm:block' />
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
 
-function StatusSkeleton() {
-  return <Skeleton className='h-5 w-52' />
-}
-
-function Skeleton({ className }: { className: string }) {
-  return <div className={`skeleton ${className}`} />
+// Keeps the saved order, and later sources win. PRs missing from every source were deleted on GitHub or are not cached yet.
+function pickPrs(ids: string[], sources: (PullRequest[] | null | undefined)[]) {
+  const prsById = new Map(sources.flatMap(prs => prs ?? []).map(pr => [pr.id, pr]))
+  return ids.map(id => prsById.get(id)).filter(pr => pr !== undefined)
 }

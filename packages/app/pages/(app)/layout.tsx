@@ -1,4 +1,4 @@
-import { Link, useShared } from '@void/react'
+import { Link, useNavigation, useShared } from '@void/react'
 import type { ReactNode } from 'react'
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -6,6 +6,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <>
+      <NavigationProgress />
       <header className='border-b border-neutral-500/20'>
         <div className='mx-auto flex h-14 max-w-5xl items-center gap-6 px-6'>
           <Link href='/dashboard' className='flex items-center gap-2 font-semibold'>
@@ -38,5 +39,23 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       <main className='mx-auto max-w-5xl px-6 py-10'>{children}</main>
     </>
+  )
+}
+
+// A thin bar at the top tells users a click is being handled while the next page or an action loads.
+function NavigationProgress() {
+  const navigation = useNavigation()
+  if (navigation.state === 'idle') {
+    return null
+  }
+
+  return (
+    <div
+      className='fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden'
+      role='progressbar'
+      aria-label='Loading'
+    >
+      <div className='h-full w-2/5 bg-neutral-900 motion-safe:animate-[progress_1.2s_ease-in-out_infinite] dark:bg-white' />
+    </div>
   )
 }

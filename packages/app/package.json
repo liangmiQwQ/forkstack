@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@iconify-json/lucide": "catalog:",
+    "@iconify-json/octicon": "catalog:",
     "@iconify-json/simple-icons": "catalog:",
     "@types/react": "catalog:",
     "oxc-transform-react": "catalog:",

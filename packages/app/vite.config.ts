@@ -8,7 +8,7 @@ export default liangmi({
   resolve: { tsconfigPaths: true },
   plugins: [
     voidPlugin(),
-    voidReact({ react: { compiler: true } }),
+    voidReact({ react: { compiler: true }, viewTransitions: true }),
     UnoCSS(`${import.meta.dirname}/uno.config.ts`)
   ]
 })

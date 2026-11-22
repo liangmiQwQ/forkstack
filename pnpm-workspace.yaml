@@ -3,6 +3,7 @@ packages:
 
 catalog:
   '@iconify-json/lucide': ^1.2.157
+  '@iconify-json/octicon': ^1.2.41
   '@iconify-json/simple-icons': ^1.2.103
   '@liangmi/vp-config': ^1.0.2
   '@octokit/graphql': ^9.0.5
@@ -34,3 +35,4 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@liangmi/vp-config@1.0.2'
+  - '@iconify-json/octicon@1.2.41'
