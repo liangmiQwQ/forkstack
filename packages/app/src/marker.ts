@@ -11,11 +11,10 @@ export function renderComment(stackId: string, stack: PullRequest[], index: numb
   const pr = stack[index]
 
   return [
-    `This pull request is part of a stack managed by [forkstack](${SITE_URL}). Merge it from the bottom up.`,
+    `${MARKER}:stack=${stackId} -->`,
     renderList(stack, index),
     `[Review only this PR's changes](${SITE_URL}/review/${pr.id})`,
     renderStatusImage(stackId, pr),
-    `${MARKER}:stack=${stackId} -->`,
     renderAgentGuide(stack, index)
   ].join('\n\n')
 }
@@ -35,7 +34,7 @@ function renderStatusImage(stackId: string, pr: PullRequest) {
   return [
     '<picture>',
     `  <source media="(prefers-color-scheme: dark)" srcset="${src}&amp;theme=dark">`,
-    `  <img alt="Status of the stack's PRs" src="${src}">`,
+    `  <img src="${src}">`,
     '</picture>'
   ].join('\n')
 }
@@ -44,23 +43,57 @@ function renderStatusImage(stackId: string, pr: PullRequest) {
 // Branch names are used instead of commit hashes, since they stay the same when the stack is rebased.
 function renderAgentGuide(stack: PullRequest[], index: number) {
   const pr = stack[index]
+
+  return [
+    '<!-- forkstack-agent',
+    `Note for AI agents: this PR is ${index + 1} of ${stack.length} in a stack of PRs from the fork \`${pr.headRepo}\`, merged bottom to top.`,
+    '',
+    'If you are reviewing this PR:',
+    ...reviewSteps(stack, index),
+    '',
+    'If you are changing this PR:',
+    ...changeSteps(stack, index),
+    '-->'
+  ].join('\n')
+}
+
+function reviewSteps(stack: PullRequest[], index: number) {
+  const pr = stack[index]
   const below = stack.slice(0, index)
   const above = stack.slice(index + 1)
   const parent = below.at(-1)
 
-  const lines = [
-    `This PR is ${index + 1} of ${stack.length} in a stack of PRs from the fork \`${pr.headRepo}\`, merged bottom to top.`,
+  return [
     parent
-      ? `Its branch \`${pr.headRef}\` is built on \`${parent.headRef}\` (#${parent.number}), so its diff on GitHub also contains ${refs(below)}. Review only the commits in \`${parent.headRef}..${pr.headRef}\`, or open ${SITE_URL}/review/${pr.id}.`
-      : `It is the bottom of the stack, so its diff on GitHub only contains its own changes.`,
-    above.length > 0
-      ? `The PRs above it (${refs(above)}) build on this PR. Changes that belong there are out of scope here.`
-      : `It is the top of the stack.`
+      ? `- GitHub's diff also contains ${refs(below)}. Review only the commits in \`${parent.headRef}..${pr.headRef}\`, or the diff at ${SITE_URL}/review/${pr.id}.`
+      : `- This is the bottom of the stack, so GitHub's diff only contains this PR's changes.`,
+    ...(above.length > 0
+      ? [
+          `- The PRs above it (${refs(above)}) build on this PR. Don't ask for changes that belong there.`
+        ]
+      : [])
   ]
+}
 
-  return ['<!-- forkstack-agent', ...lines, '-->'].join('\n')
+function changeSteps(stack: PullRequest[], index: number) {
+  const pr = stack[index]
+  const below = stack.slice(0, index)
+  const above = stack.slice(index + 1)
+
+  return [
+    above.length > 0
+      ? `- Commit to \`${pr.headRef}\`, then rebase the branches above it (${branches(above)}) in order.`
+      : `- Commit to \`${pr.headRef}\`.`,
+    ...(below.length > 0
+      ? [`- Make changes that belong to ${refs(below)} on their branches, not here.`]
+      : [])
+  ]
 }
 
 function refs(prs: PullRequest[]) {
   return prs.map(pr => `#${pr.number}`).join(', ')
+}
+
+function branches(prs: PullRequest[]) {
+  return prs.map(pr => `\`${pr.headRef}\``).join(', ')
 }
