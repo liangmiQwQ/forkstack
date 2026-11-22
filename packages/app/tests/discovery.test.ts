@@ -2,6 +2,7 @@ import { expect, it } from 'vite-plus/test'
 
 import { findStacks, groupCandidates, isManaged } from '../src/discovery.ts'
 import type { PullRequest } from '../src/discovery.ts'
+import { renderComment } from '../src/marker.ts'
 
 function pr(number: number, overrides: Partial<PullRequest> = {}): PullRequest {
   return {
@@ -56,10 +57,10 @@ it('skips stacks that branch into more than one PR', () => {
   expect(findStacks(group)).toEqual([])
 })
 
-it('treats a stack as managed when any of its descriptions has a forkstack marker', () => {
+it('treats a stack as managed when any of its PRs has a bot comment with a forkstack marker', () => {
   const stack = [pr(1), pr(2)]
-  const managed = new Map([[url(2), 'Fixes a bug.\n\n<!-- forkstack -->']])
-  const unmanaged = new Map([[url(1), 'Fixes a bug.']])
+  const managed = new Map([[url(2), ['Thanks!', renderComment('stack')]]])
+  const unmanaged = new Map([[url(1), ['Thanks!']]])
 
   expect(isManaged(stack, managed)).toBe(true)
   expect(isManaged(stack, unmanaged)).toBe(false)

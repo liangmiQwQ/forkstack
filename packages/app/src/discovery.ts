@@ -1,3 +1,5 @@
+import { MARKER } from './marker.ts'
+
 export interface PullRequest {
   /** GitHub's GraphQL node ID. */
   id: string
@@ -15,11 +17,8 @@ export interface PullRequest {
   commits: string[]
 }
 
-/** Description of each PR, keyed by PR URL since numbers repeat across repositories. */
-export type BodiesByPr = Map<string, string>
-
-// Every PR managed by forkstack carries this HTML comment in its description, so stacks can be recovered without the database.
-const MARKER = '<!-- forkstack'
+/** Bodies of the bot's comments on each PR, keyed by PR URL since numbers repeat across repositories. */
+export type CommentsByPr = Map<string, string[]>
 
 // Groups PRs that could form a fork stack: same base repo and branch, with branches in the same fork.
 export function groupCandidates(prs: PullRequest[]): PullRequest[][] {
@@ -62,8 +61,8 @@ export function findStacks(group: PullRequest[]): PullRequest[][] {
   return roots.map(root => walkChain(root, children)).filter(chain => chain !== null)
 }
 
-export function isManaged(stack: PullRequest[], bodies: BodiesByPr): boolean {
-  return stack.some(pr => bodies.get(pr.url)?.includes(MARKER))
+export function isManaged(stack: PullRequest[], comments: CommentsByPr): boolean {
+  return stack.some(pr => comments.get(pr.url)?.some(body => body.includes(MARKER)))
 }
 
 function findAncestors(pr: PullRequest, group: PullRequest[]) {

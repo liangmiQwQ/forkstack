@@ -4,8 +4,9 @@ import { requireAuth } from 'void/auth'
 
 import { getGithubToken } from '../../src/account.ts'
 import { findStacks, groupCandidates, isManaged } from '../../src/discovery.ts'
-import { fetchBodies, searchOpenPrs } from '../../src/github.ts'
+import { searchOpenPrs } from '../../src/github.ts'
 import { cacheStacks, readCachedStacks } from '../../src/stack-cache.ts'
+import { fetchBotComments } from '../../src/stack-markers.ts'
 
 export type Props = InferProps<typeof loader>
 
@@ -13,7 +14,7 @@ export const loader = defineHandler(async c => {
   const user = requireAuth(c, { throwRedirect: '/login' })
 
   // Both GitHub requests are deferred so the page renders at once. The search returns commits, so stacks show right after it.
-  // The second request reads descriptions for forkstack markers, so managed stacks are recognized even if the database is lost.
+  // The second request reads the bot's comments for forkstack markers, so managed stacks are recognized even if the database is lost.
   const tokenPromise = getGithubToken(c, user.id)
   const stacksPromise = tokenPromise
     .then(searchOpenPrs)
@@ -30,8 +31,8 @@ export const loader = defineHandler(async c => {
     // Aligned with `stacks`: entry `i` tells whether stack `i` is already managed by forkstack.
     managed: defer(async () => {
       const stacks = await stacksPromise
-      const bodies = await fetchBodies(await tokenPromise, stacks.flat())
-      return stacks.map(stack => isManaged(stack, bodies))
+      const comments = await fetchBotComments(stacks.flat())
+      return stacks.map(stack => isManaged(stack, comments))
     })
   }
 })

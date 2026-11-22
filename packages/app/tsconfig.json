@@ -18,8 +18,9 @@
     "paths": {
       "void/db": ["./.void/db.d.ts"],
       "void/routes": ["./.void/routes.d.ts"],
-      "@auth-schema": ["./.void/better-auth-schema.ts"]
+      "@auth-schema": ["./.void/better-auth-schema.ts"],
+      "@schema": ["./db/schema.ts"]
     }
   },
-  "include": ["src", "pages", "routes", "middleware", "tests", "auth.ts", "env.ts"]
+  "include": ["db", "src", "pages", "routes", "middleware", "tests", "auth.ts", "env.ts"]
 }
