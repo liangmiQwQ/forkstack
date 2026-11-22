@@ -9,7 +9,8 @@ export default defineConfig({
   },
   head: {
     titleTemplate: '%s · forkstack',
-    htmlAttrs: { lang: 'en' }
+    htmlAttrs: { lang: 'en' },
+    link: [{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }]
   },
   inference: {
     build: 'pnpm exec vp build'
