@@ -39,7 +39,7 @@ export default defineConfig({
     'form-alert':
       '[&_[role=alert]]:text-sm [&_[role=alert]]:text-red-700 dark:[&_[role=alert]]:text-red-400',
     dialog:
-      'form-alert m-auto w-[min(28rem,calc(100%-2rem))] rounded-xl border border-neutral-500/20 bg-white p-5 text-neutral-900 backdrop:bg-black/50 dark:bg-neutral-900 dark:text-neutral-100',
+      'form-alert m-auto w-[min(28rem,calc(100%-2rem))] rounded-xl border border-neutral-500/20 bg-white text-neutral-900 backdrop:bg-black/50 dark:bg-neutral-900 dark:text-neutral-100',
     skeleton: 'rounded-md bg-neutral-500/10 motion-safe:animate-pulse',
     'nav-link':
       'flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-neutral-500 hover:text-current data-[void-active]:bg-neutral-500/10 data-[void-active]:text-current data-[void-pending]:opacity-60'

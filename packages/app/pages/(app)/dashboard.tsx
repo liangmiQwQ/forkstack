@@ -183,8 +183,18 @@ function ConfirmButton({
         <PendingIcon pending={form.pending} icon={icon} />
         {!iconOnly && label}
       </button>
-      <dialog ref={dialog} className='dialog' aria-labelledby={titleId}>
-        <Form form={form} className='flex flex-col gap-4'>
+      {/* The padding sits on the form, so a click that lands on the dialog itself is on the backdrop. */}
+      <dialog
+        ref={dialog}
+        className='dialog'
+        aria-labelledby={titleId}
+        onClick={event => {
+          if (event.target === event.currentTarget && !form.pending) {
+            dialog.current?.close()
+          }
+        }}
+      >
+        <Form form={form} className='flex flex-col gap-4 p-5'>
           <div className='flex flex-col gap-2'>
             <h2 id={titleId} className='font-semibold'>
               {title}
