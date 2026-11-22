@@ -52,7 +52,7 @@ function renderAgentGuide(stack: PullRequest[], index: number) {
     ...reviewSteps(stack, index),
     '',
     'If you are changing this PR:',
-    ...changeSteps(stack, index),
+    ...changeSteps(stack),
     '-->'
   ].join('\n')
 }
@@ -67,6 +67,7 @@ function reviewSteps(stack: PullRequest[], index: number) {
     parent
       ? `- GitHub's diff also contains ${refs(below)}. Review only the commits in \`${parent.headRef}..${pr.headRef}\`, or the diff at ${SITE_URL}/review/${pr.id}.`
       : `- This is the bottom of the stack, so GitHub's diff only contains this PR's changes.`,
+    ...(below.length > 0 ? [`- Don't ask for changes that belong to ${refs(below)}.`] : []),
     ...(above.length > 0
       ? [
           `- The PRs above it (${refs(above)}) build on this PR. Don't ask for changes that belong there.`
@@ -75,25 +76,14 @@ function reviewSteps(stack: PullRequest[], index: number) {
   ]
 }
 
-function changeSteps(stack: PullRequest[], index: number) {
-  const pr = stack[index]
-  const below = stack.slice(0, index)
-  const above = stack.slice(index + 1)
-
+// Agents tend to commit everything to the PR they were asked about, so they are pointed at every layer's branch.
+function changeSteps(stack: PullRequest[]) {
+  const layers = stack.map(pr => `#${pr.number} \`${pr.headRef}\``).join(', ')
   return [
-    above.length > 0
-      ? `- Commit to \`${pr.headRef}\`, then rebase the branches above it (${branches(above)}) in order.`
-      : `- Commit to \`${pr.headRef}\`.`,
-    ...(below.length > 0
-      ? [`- Make changes that belong to ${refs(below)} on their branches, not here.`]
-      : [])
+    `- Find which PR in the stack each change belongs to, and commit it to that PR's branch: ${layers}.`
   ]
 }
 
 function refs(prs: PullRequest[]) {
   return prs.map(pr => `#${pr.number}`).join(', ')
-}
-
-function branches(prs: PullRequest[]) {
-  return prs.map(pr => `\`${pr.headRef}\``).join(', ')
 }
