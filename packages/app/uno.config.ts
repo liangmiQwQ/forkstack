@@ -2,6 +2,8 @@ import { defineConfig, presetIcons, presetWebFonts, presetWind4 } from 'unocss'
 
 // Emphasis levels follow DESIGN.md: soft fill by default, outline for edges, solid for the main action.
 export default defineConfig({
+  // Include lazy routes in the stylesheet served with the first page render.
+  content: { filesystem: ['pages/**/*.tsx'] },
   presets: [
     presetWind4({ dark: 'media' }),
     presetIcons(),
