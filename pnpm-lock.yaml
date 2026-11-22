@@ -176,6 +176,9 @@ catalogs:
     '@iconify-json/lucide':
       specifier: ^1.2.157
       version: 1.2.157
+    '@iconify-json/octicon':
+      specifier: ^1.2.41
+      version: 1.2.41
     '@iconify-json/simple-icons':
       specifier: ^1.2.103
       version: 1.2.103
@@ -278,6 +281,9 @@ importers:
       '@iconify-json/lucide':
         specifier: 'catalog:'
         version: 1.2.157
+      '@iconify-json/octicon':
+        specifier: 'catalog:'
+        version: 1.2.41
       '@iconify-json/simple-icons':
         specifier: 'catalog:'
         version: 1.2.103
@@ -951,6 +957,9 @@ packages:
 
   '@iconify-json/lucide@1.2.157':
     resolution: {integrity: sha512-hFOoLrhzbDkDfWdLhrEWHTyUXUkBxV5jrY00XgtI6zDKrwh5jANu0BLXb6xfCS/FeQ6A/9XDvEk4aJovNbOslg==}
+
+  '@iconify-json/octicon@1.2.41':
+    resolution: {integrity: sha512-NqxGDe2UjF2j9zMxmeY72iNBpLEjFszabngun5oJSpmwgoIkJg+/e08CpYsoVVMwiOt9T15UBxrzxlXetXf03g==}
 
   '@iconify-json/simple-icons@1.2.103':
     resolution: {integrity: sha512-FMn+aVTsqQdYOwf5reCXXtfWapb+4ijI6WrU8ej1spWXWfA+d41TBXcKagHFwiHZyqt7kP7F04AiG1dYj2R06w==}
@@ -3950,6 +3959,10 @@ snapshots:
     optional: true
 
   '@iconify-json/lucide@1.2.157':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/octicon@1.2.41':
     dependencies:
       '@iconify/types': 2.0.0
 

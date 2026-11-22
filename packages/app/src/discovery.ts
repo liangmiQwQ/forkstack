@@ -15,6 +15,15 @@ export interface PullRequest {
   headOid: string
   /** Hashes of the commits on the PR's branch. */
   commits: string[]
+  state: 'OPEN' | 'CLOSED' | 'MERGED'
+  isDraft: boolean
+  /** `null` when the base branch does not require reviews. */
+  reviewDecision: 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED' | null
+  /** ISO timestamp of the PR's last update. */
+  updatedAt: string
+  comments: number
+  /** Combined result of the head commit's checks, or `null` when it has none. */
+  checks: 'passing' | 'failing' | 'running' | null
 }
 
 /** Bodies of the bot's comments on each PR, keyed by PR URL since numbers repeat across repositories. */

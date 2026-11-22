@@ -16,6 +16,12 @@ function pr(number: number, overrides: Partial<PullRequest> = {}): PullRequest {
     headRef: `branch-${number}`,
     headOid: `oid-${number}`,
     commits: [`oid-${number}`],
+    state: 'OPEN',
+    isDraft: false,
+    reviewDecision: null,
+    updatedAt: '2026-01-01T00:00:00Z',
+    comments: 0,
+    checks: null,
     ...overrides
   }
 }

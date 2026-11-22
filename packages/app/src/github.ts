@@ -15,6 +15,13 @@ const PR_FIELDS = /* GraphQL */ `
     baseRefName
     headRefName
     headRefOid
+    state
+    isDraft
+    reviewDecision
+    updatedAt
+    comments {
+      totalCount
+    }
     baseRepository {
       nameWithOwner
     }
@@ -25,6 +32,15 @@ const PR_FIELDS = /* GraphQL */ `
       nodes {
         commit {
           oid
+        }
+      }
+    }
+    lastCommit: commits(last: 1) {
+      nodes {
+        commit {
+          statusCheckRollup {
+            state
+          }
         }
       }
     }
@@ -100,10 +116,18 @@ interface PullRequestNode {
   baseRefName: string
   headRefName: string
   headRefOid: string
+  state: PullRequest['state']
+  isDraft: boolean
+  reviewDecision: PullRequest['reviewDecision']
+  updatedAt: string
+  comments: { totalCount: number }
   baseRepository: { nameWithOwner: string }
   headRepository: { nameWithOwner: string } | null
   commits: { nodes: { commit: { oid: string } }[] }
+  lastCommit: { nodes: { commit: { statusCheckRollup: { state: CheckState } | null } }[] }
 }
+
+type CheckState = 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED'
 
 interface SearchResult {
   search: {
@@ -216,6 +240,32 @@ function toPullRequest(node: PullRequestNode): PullRequest {
     headRepo: node.headRepository?.nameWithOwner ?? null,
     headRef: node.headRefName,
     headOid: node.headRefOid,
-    commits: node.commits.nodes.map(({ commit }) => commit.oid)
+    commits: node.commits.nodes.map(({ commit }) => commit.oid),
+    state: node.state,
+    isDraft: node.isDraft,
+    reviewDecision: node.reviewDecision,
+    updatedAt: node.updatedAt,
+    comments: node.comments.totalCount,
+    checks: toChecks(node.lastCommit.nodes[0]?.commit.statusCheckRollup?.state)
+  }
+}
+
+// GitHub has five rollup states, and the page only needs to tell passing, failing, and running checks apart.
+function toChecks(state: CheckState | undefined): PullRequest['checks'] {
+  switch (state) {
+    case 'SUCCESS': {
+      return 'passing'
+    }
+    case 'FAILURE':
+    case 'ERROR': {
+      return 'failing'
+    }
+    case 'PENDING':
+    case 'EXPECTED': {
+      return 'running'
+    }
+    default: {
+      return null
+    }
   }
 }
