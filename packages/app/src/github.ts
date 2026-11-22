@@ -100,6 +100,14 @@ const ADD_COMMENT_MUTATION = /* GraphQL */ `
   }
 `
 
+const UPDATE_COMMENT_MUTATION = /* GraphQL */ `
+  mutation ($id: ID!, $body: String!) {
+    updateIssueComment(input: { id: $id, body: $body }) {
+      clientMutationId
+    }
+  }
+`
+
 const DELETE_COMMENT_MUTATION = /* GraphQL */ `
   mutation ($id: ID!) {
     deleteIssueComment(input: { id: $id }) {
@@ -151,10 +159,11 @@ interface NodesResult<T> {
 }
 
 // Repos the user owns are excluded, since a fork stack always merges into someone else's repository.
+// Private repos are excluded, since the stack status image is served to anyone who has its URL.
 // `@me` resolves to the token's owner, so the GitHub login never needs to be stored.
 export async function searchOpenPrs(token: string): Promise<PullRequest[]> {
   const request = createClient(token)
-  const q = 'is:pr is:open author:@me -user:@me archived:false'
+  const q = 'is:pr is:open is:public author:@me -user:@me archived:false'
   const prs: PullRequest[] = []
 
   let after: string | null = null
@@ -195,6 +204,17 @@ export async function addComment(token: string, subjectId: string, body: string)
     body
   })
   return result.addComment.commentEdge.node.id
+}
+
+export async function updateComment(token: string, id: string, body: string): Promise<void> {
+  try {
+    await createClient(token)(UPDATE_COMMENT_MUTATION, { id, body })
+  } catch (error) {
+    // A maintainer may have deleted the comment, and the stack still works without it.
+    if (!isNotFound(error)) {
+      throw error
+    }
+  }
 }
 
 export async function deleteComment(token: string, id: string): Promise<void> {

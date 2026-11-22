@@ -1,5 +1,6 @@
 import { stackPrTable, stackTable } from '@schema'
 import { asc, db, eq } from 'void/db'
+import type { SQL } from 'void/db'
 
 export interface StoredStack {
   id: string
@@ -13,21 +14,21 @@ export interface StoredPr {
   commentId: string | null
 }
 
-export async function listStacks(userId: string): Promise<StoredStack[]> {
+export function listStacks(userId: string): Promise<StoredStack[]> {
+  return queryStacks(eq(stackTable.userId, userId))
+}
+
+export async function getStack(id: string): Promise<StoredStack | null> {
+  const stacks = await queryStacks(eq(stackTable.id, id))
+  return stacks.at(0) ?? null
+}
+
+export async function findStackId(prId: string): Promise<string | null> {
   const rows = await db
-    .select({ stackId: stackTable.id, prId: stackPrTable.prId, commentId: stackPrTable.commentId })
-    .from(stackTable)
-    .innerJoin(stackPrTable, eq(stackPrTable.stackId, stackTable.id))
-    .where(eq(stackTable.userId, userId))
-    .orderBy(asc(stackTable.createdAt), asc(stackPrTable.position))
-
-  const stacks = new Map<string, StoredPr[]>()
-  for (const row of rows) {
-    const pr = { id: row.prId, commentId: row.commentId }
-    stacks.set(row.stackId, [...(stacks.get(row.stackId) ?? []), pr])
-  }
-
-  return [...stacks].map(([id, prs]) => ({ id, prs }))
+    .select({ stackId: stackPrTable.stackId })
+    .from(stackPrTable)
+    .where(eq(stackPrTable.prId, prId))
+  return rows.at(0)?.stackId ?? null
 }
 
 // D1 has no interactive transactions, so the inserts go in one batch to keep a stack from being saved without its PRs.
@@ -52,4 +53,21 @@ export async function saveCommentId(prId: string, commentId: string): Promise<vo
 
 export async function removePr(prId: string): Promise<void> {
   await db.delete(stackPrTable).where(eq(stackPrTable.prId, prId))
+}
+
+async function queryStacks(where: SQL): Promise<StoredStack[]> {
+  const rows = await db
+    .select({ stackId: stackTable.id, prId: stackPrTable.prId, commentId: stackPrTable.commentId })
+    .from(stackTable)
+    .innerJoin(stackPrTable, eq(stackPrTable.stackId, stackTable.id))
+    .where(where)
+    .orderBy(asc(stackTable.createdAt), asc(stackPrTable.position))
+
+  const stacks = new Map<string, StoredPr[]>()
+  for (const row of rows) {
+    const pr = { id: row.prId, commentId: row.commentId }
+    stacks.set(row.stackId, [...(stacks.get(row.stackId) ?? []), pr])
+  }
+
+  return [...stacks].map(([id, prs]) => ({ id, prs }))
 }
