@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@octokit/graphql": "catalog:",
+    "@octokit/webhooks-methods": "catalog:",
     "@void/react": "catalog:",
     "hono": "catalog:",
     "react": "catalog:",
