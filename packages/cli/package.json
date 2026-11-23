@@ -1,0 +1,37 @@
+{
+  "name": "forkstack",
+  "version": "0.0.0",
+  "description": "Manage stacked pull requests across GitHub forks.",
+  "homepage": "https://github.com/liangmiQwQ/forkstack#readme",
+  "bugs": {
+    "url": "https://github.com/liangmiQwQ/forkstack/issues"
+  },
+  "license": "MIT",
+  "author": "Liang Mi <hi@liangmi.dev>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liangmiQwQ/forkstack.git",
+    "directory": "packages/cli"
+  },
+  "bin": {
+    "forkstack": "./bin/forkstack.mjs"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp run cpack",
+    "dev": "vp pack --watch",
+    "prepublishOnly": "vp run build",
+    "test": "vp run ctest"
+  },
+  "devDependencies": {
+    "gunshi": "catalog:",
+    "picocolors": "catalog:"
+  }
+}

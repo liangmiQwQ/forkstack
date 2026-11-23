@@ -12,6 +12,7 @@ jobs:
 
     permissions:
       contents: write
+      id-token: write
 
     steps:
       - uses: actions/checkout@v7
@@ -31,6 +32,9 @@ jobs:
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to NPM
+        run: vp pm publish -r --access public --no-git-checks
 
       - name: Deploy to Cloudflare
         working-directory: packages/app

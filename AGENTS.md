@@ -13,6 +13,7 @@ The web app is built with [Void](https://void.cloud) and React. Before working w
 All workspace packages live under `packages/`.
 
 - `packages/app` contains the Void + React web app.
+- `packages/cli` contains the `forkstack` CLI, published to npm.
 
 ## Rules
 
