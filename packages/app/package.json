@@ -14,7 +14,10 @@
     "test": "vp run ctest"
   },
   "dependencies": {
+    "@octokit/auth-app": "catalog:",
     "@octokit/graphql": "catalog:",
+    "@octokit/request": "catalog:",
+    "@octokit/request-error": "catalog:",
     "@octokit/webhooks-methods": "catalog:",
     "@void/react": "catalog:",
     "hono": "catalog:",

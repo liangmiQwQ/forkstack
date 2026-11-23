@@ -1,6 +1,7 @@
 import { graphql, GraphqlResponseError } from '@octokit/graphql'
 
 import type { CommentsByPr, PullRequest } from './discovery.ts'
+import type { LayerState } from './restack-plan.ts'
 
 // GitHub's `nodes(ids:)` accepts at most 100 IDs per call.
 const NODES_LIMIT = 100
@@ -102,6 +103,51 @@ const HEAD_PRS_QUERY = /* GraphQL */ `
   }
 `
 
+// Force-pushes come newest last, and a layer is usually built on a recent version of its parent.
+const RESTACK_QUERY = /* GraphQL */ `
+  query ($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on PullRequest {
+        id
+        state
+        headRefName
+        headRefOid
+        headRepository {
+          id
+          nameWithOwner
+        }
+        baseRef {
+          target {
+            oid
+          }
+        }
+        commits(first: 250) {
+          totalCount
+          nodes {
+            commit {
+              oid
+              parents(first: 2) {
+                nodes {
+                  oid
+                }
+              }
+            }
+          }
+        }
+        timelineItems(itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT], last: 100) {
+          nodes {
+            ... on HeadRefForcePushedEvent {
+              beforeCommit {
+                oid
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`
+
 const ADD_COMMENT_MUTATION = /* GraphQL */ `
   mutation ($subjectId: ID!, $body: String!) {
     addComment(input: { subjectId: $subjectId, body: $body }) {
@@ -167,6 +213,31 @@ interface HeadPrsResult {
   repository: { ref: { associatedPullRequests: { nodes: { id: string }[] } } | null } | null
 }
 
+interface RestackNode {
+  id: string
+  state: PullRequest['state']
+  headRefName: string
+  headRefOid: string
+  headRepository: { id: string; nameWithOwner: string } | null
+  baseRef: { target: { oid: string } } | null
+  commits: {
+    totalCount: number
+    nodes: { commit: { oid: string; parents: { nodes: { oid: string }[] } } }[]
+  }
+  timelineItems: { nodes: { beforeCommit?: { oid: string } | null }[] }
+}
+
+export interface RestackState {
+  /** `owner/name` of the fork every layer's branch lives in. */
+  repo: string
+  /** GraphQL node ID of the fork. */
+  repositoryId: string
+  /** Head of the branch the stack merges into. */
+  mainOid: string
+  /** The stack's layers, bottom to top. */
+  layers: LayerState[]
+}
+
 interface AddCommentResult {
   addComment: { commentEdge: { node: { id: string } } }
 }
@@ -221,6 +292,31 @@ export async function findPrIdsByHead(token: string, repo: string, ref: string):
   const [owner, name] = repo.split('/')
   const result = await createClient(token)<HeadPrsResult>(HEAD_PRS_QUERY, { owner, name, ref })
   return result.repository?.ref?.associatedPullRequests.nodes.map(pr => pr.id) ?? []
+}
+
+// Returns `null` when a restack can't be done from GitHub's data: a PR is no longer open, or has more commits than one request returns.
+export async function fetchRestackState(
+  token: string,
+  ids: string[]
+): Promise<RestackState | null> {
+  const nodes = await requestNodes<RestackNode>(token, RESTACK_QUERY, ids)
+  const byId = new Map(nodes.map(node => [node.id, node]))
+  const stack = ids.map(id => byId.get(id))
+
+  const [bottom] = stack
+  const supported = stack.every(
+    node => node?.state === 'OPEN' && node.commits.totalCount === node.commits.nodes.length
+  )
+  if (!supported || !bottom?.headRepository || !bottom.baseRef) {
+    return null
+  }
+
+  return {
+    repo: bottom.headRepository.nameWithOwner,
+    repositoryId: bottom.headRepository.id,
+    mainOid: bottom.baseRef.target.oid,
+    layers: stack.map(node => toLayerState(node!))
+  }
 }
 
 export async function addComment(token: string, subjectId: string, body: string): Promise<string> {
@@ -292,6 +388,18 @@ function toPullRequest(node: PullRequestNode): PullRequest {
     updatedAt: node.updatedAt,
     comments: node.comments.totalCount,
     checks: toChecks(node.lastCommit.nodes[0]?.commit.statusCheckRollup?.state)
+  }
+}
+
+function toLayerState(node: RestackNode): LayerState {
+  return {
+    prId: node.id,
+    ref: node.headRefName,
+    headOid: node.headRefOid,
+    commits: new Map(
+      node.commits.nodes.map(({ commit }) => [commit.oid, commit.parents.nodes.map(p => p.oid)])
+    ),
+    pastHeads: node.timelineItems.nodes.flatMap(event => event.beforeCommit?.oid ?? [])
   }
 }
 
