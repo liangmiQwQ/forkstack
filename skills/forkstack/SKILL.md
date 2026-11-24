@@ -45,17 +45,19 @@ forkstack submit
 - The first own commit of a branch becomes its PR's title and description, so write it as one.
 - `forkstack submit` pushes every branch, opens the missing PRs, and links the stack. Run it again after any change. Add `--draft` for draft PRs.
 - After changing a lower branch, run `forkstack rebase` to replay the branches above it, then `forkstack submit`.
+- After forkstack rebased the stack on GitHub, such as after a merge, run `forkstack sync` before changing anything. It pulls every branch, keeps local commits on top, pushes, and deletes merged branches.
 
 ## Commands
 
-| Command                                          | Use                                                      |
-| ------------------------------------------------ | -------------------------------------------------------- |
-| `forkstack view`                                 | See the stack, with each PR's state, checks and review   |
-| `forkstack submit`                               | Push the stack, open PRs and link them                   |
-| `forkstack rebase`                               | Rebase the stack onto the latest trunk and force-push it |
-| `forkstack checkout <pr-url \| number \| id>`    | Fetch a stack and check out its top branch               |
-| `forkstack up`, `down`, `top`, `bottom`, `trunk` | Move between branches                                    |
-| `forkstack unstack`                              | Unlink the stack, leaving its PRs open                   |
+| Command                                          | Use                                                       |
+| ------------------------------------------------ | --------------------------------------------------------- |
+| `forkstack view`                                 | See the stack, with each PR's state, checks and review    |
+| `forkstack submit`                               | Push the stack, open PRs and link them                    |
+| `forkstack rebase`                               | Rebase the stack onto the latest trunk and force-push it  |
+| `forkstack sync`                                 | Pull the stack from the fork, restack local commits, push |
+| `forkstack checkout <pr-url \| number \| id>`    | Fetch a stack and check out its top branch                |
+| `forkstack up`, `down`, `top`, `bottom`, `trunk` | Move between branches                                     |
+| `forkstack unstack`                              | Unlink the stack, leaving its PRs open                    |
 
 Don't run `forkstack switch`. It asks for a choice interactively, so use `up`, `down`, `top` or `bottom` instead.
 

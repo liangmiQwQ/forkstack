@@ -46,3 +46,16 @@ async function readTrunk(remotes: Remotes, branch: string) {
   }
   throw new Error(`Can't find ${branch} of ${remotes.upstream} locally. Run \`git fetch\` first.`)
 }
+
+// `git checkout main` can't pick a remote by itself when both the fork and upstream have `main`.
+export async function checkoutTrunk(remotes: Remotes, branch: string): Promise<void> {
+  const exists = await git('rev-parse', '--verify', '--quiet', `refs/heads/${branch}`).catch(
+    () => null
+  )
+  const remote = remotes.upstreamRemote ?? remotes.forkRemote
+  await git(
+    'checkout',
+    '--quiet',
+    ...(exists ? [branch] : ['-b', branch, '--track', `${remote}/${branch}`])
+  )
+}

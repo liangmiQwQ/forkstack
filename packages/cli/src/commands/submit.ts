@@ -29,7 +29,7 @@ export const submit = define({
     // 1. Find the stack from the current branch's git ancestry
     const remotes = await findRemotes(ctx.values)
     const trunk = await findTrunk(remotes, { fetch: true })
-    const stack = await findLocalStack(trunk.oid, await currentBranch())
+    const stack = await findLocalStack(trunk.oid, await currentBranch(), remotes.forkRemote)
 
     // 2. Push every branch. The lease refuses to overwrite commits pushed from elsewhere.
     const names = stack.map(branch => branch.name)

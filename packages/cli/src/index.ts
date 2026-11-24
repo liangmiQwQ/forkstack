@@ -7,6 +7,7 @@ import { checkout } from './commands/checkout.ts'
 import { bottom, down, switchBranch, top, trunk, up } from './commands/navigation.ts'
 import { rebase } from './commands/rebase.ts'
 import { submit } from './commands/submit.ts'
+import { sync } from './commands/sync.ts'
 import { unstack } from './commands/unstack.ts'
 import { view } from './commands/view.ts'
 
@@ -31,6 +32,7 @@ try {
       checkout,
       unstack,
       rebase,
+      sync,
       up,
       down,
       top,

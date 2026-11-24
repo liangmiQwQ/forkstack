@@ -4,7 +4,7 @@ import c from 'picocolors'
 import { getStack } from '../api.ts'
 import type { Stack } from '../api.ts'
 import { findPrStack } from '../current-stack.ts'
-import { git } from '../git.ts'
+import { git, isAncestor } from '../git.ts'
 import { findPrRef } from '../github.ts'
 import { findRemotes, REMOTE_ARGS } from '../remotes.ts'
 import type { Remotes } from '../remotes.ts'
@@ -73,10 +73,7 @@ async function updateBranch(ref: string, remoteRef: string) {
     return
   }
 
-  const isBehind = await git('merge-base', '--is-ancestor', local, remoteRef)
-    .then(() => true)
-    .catch(() => false)
-  if (!isBehind) {
+  if (!(await isAncestor(local, remoteRef))) {
     console.warn(
       c.yellow(`\`${ref}\` has commits that are not in your fork, so it was left as is.`)
     )

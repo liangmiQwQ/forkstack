@@ -51,11 +51,19 @@ After changing a lower branch, or when `main` moves on, rebase the stack:
 forkstack rebase
 ```
 
-It rebases each branch onto the new head of the one below it, and the bottom open branch onto the latest trunk, then force-pushes the branches that changed. Branches whose PRs merged are skipped.
+It rebases each branch onto the new head of the one below it, and the bottom open branch onto the latest trunk, then force-pushes the branches that differ from your fork. Branches whose PRs merged are skipped.
 
 When a branch conflicts, resolve the conflicts, `git add` them, and run `forkstack rebase --continue`. Run `forkstack rebase --abort` to restore every branch as it was.
 
 You don't need to rebase after a merge. When the bottom PR merges, forkstack rebases the rest on GitHub. You can also rebase from the [dashboard](/dashboard).
+
+After forkstack rebases on GitHub, your local branches are behind. Bring them up to date:
+
+```bash
+forkstack sync
+```
+
+It pulls each branch from your fork and replays any commits you made locally on top. Then it rebases the stack like `forkstack rebase`, pushes the branches that differ from your fork, and deletes the branches whose PRs merged. When a branch conflicts while pulling, resolve it, run `git rebase --continue`, then run `forkstack sync` again.
 
 ## Commands
 
@@ -65,6 +73,7 @@ You don't need to rebase after a merge. When the bottom PR merges, forkstack reb
 | `forkstack view`                                 | Show the stack with each PR's state, checks and review                                  |
 | `forkstack checkout <pr-url \| pr-number \| id>` | Fetch every branch of a stack and check out the top one                                 |
 | `forkstack rebase [--continue \| --abort]`       | Rebase the stack onto the latest trunk locally, then force-push it                      |
+| `forkstack sync`                                 | Pull the stack from your fork, rebase local commits onto it, and push them              |
 | `forkstack unstack`                              | Unlink the stack. Its PRs stay open                                                     |
 | `forkstack up`, `down`, `top`, `bottom`, `trunk` | Move around the stack                                                                   |
 | `forkstack switch`                               | Pick a branch of the stack to check out                                                 |

@@ -6,7 +6,7 @@ import { currentBranch, git } from '../git.ts'
 import { findLocalStack } from '../local-stack.ts'
 import type { LocalBranch } from '../local-stack.ts'
 import { findRemotes, REMOTE_ARGS } from '../remotes.ts'
-import { findTrunk } from '../trunk.ts'
+import { checkoutTrunk, findTrunk } from '../trunk.ts'
 
 // Picks the index of the branch to move to, from the current one's index in the stack.
 type Move = (index: number, length: number) => number
@@ -31,17 +31,7 @@ export const trunk = define({
   run: async ctx => {
     const remotes = await findRemotes(ctx.values)
     const { branch } = await findTrunk(remotes, { fetch: false })
-
-    // `git checkout main` can't pick a remote by itself when both the fork and upstream have `main`.
-    const exists = await git('rev-parse', '--verify', '--quiet', `refs/heads/${branch}`).catch(
-      () => null
-    )
-    const remote = remotes.upstreamRemote ?? remotes.forkRemote
-    await git(
-      'checkout',
-      '--quiet',
-      ...(exists ? [branch] : ['-b', branch, '--track', `${remote}/${branch}`])
-    )
+    await checkoutTrunk(remotes, branch)
     console.log(`Switched to ${c.cyan(branch)}`)
   }
 })
@@ -87,7 +77,7 @@ async function readStack(options: { fork: string; upstream?: string }) {
   const { oid } = await findTrunk(remotes, { fetch: false })
   const branch = await currentBranch()
 
-  const stack = await findLocalStack(oid, branch)
+  const stack = await findLocalStack(oid, branch, remotes.forkRemote)
   return { stack, index: stack.findIndex(layer => layer.name === branch) }
 }
 

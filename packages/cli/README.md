@@ -20,6 +20,7 @@ gh extension install liangmiQwQ/gh-forkstack
 | `forkstack view`                                 | Show the stack with each PR's state, checks and review                                  |
 | `forkstack checkout <pr-url \| pr-number \| id>` | Fetch every branch of a stack and check out the top one                                 |
 | `forkstack rebase [--continue \| --abort]`       | Rebase the stack onto the latest trunk locally, then force-push it                      |
+| `forkstack sync`                                 | Pull the stack from your fork, rebase local commits onto it, and push them              |
 | `forkstack unstack`                              | Unlink the stack. Its PRs stay open                                                     |
 | `forkstack up`, `down`, `top`, `bottom`, `trunk` | Move around the stack                                                                   |
 | `forkstack switch`                               | Pick a branch of the stack to check out                                                 |

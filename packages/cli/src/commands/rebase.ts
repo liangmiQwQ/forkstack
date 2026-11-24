@@ -5,7 +5,7 @@ import c from 'picocolors'
 
 import { COMMAND } from '../command.ts'
 import { execInteractive } from '../exec.ts'
-import { currentBranch, git } from '../git.ts'
+import { assertClean, currentBranch, git, readForkHead } from '../git.ts'
 import { findPrState } from '../github.ts'
 import { readLayerState } from '../layers.ts'
 import { findLocalStack } from '../local-stack.ts'
@@ -17,7 +17,9 @@ import {
 } from '../rebase-state.ts'
 import type { RebaseState } from '../rebase-state.ts'
 import { findRemotes, REMOTE_ARGS } from '../remotes.ts'
+import type { Remotes } from '../remotes.ts'
 import { findTrunk } from '../trunk.ts'
+import type { Trunk } from '../trunk.ts'
 
 export const rebase = define({
   name: 'rebase',
@@ -42,21 +44,22 @@ export const rebase = define({
       )
     }
 
-    await start(ctx.values)
+    const remotes = await findRemotes(ctx.values)
+    const merged = await restack(remotes, await findTrunk(remotes, { fetch: true }))
+    for (const name of merged) {
+      console.log(`${c.cyan(name)} was merged, and can be deleted.`)
+    }
   }
 })
 
 // Rebases each layer onto the new head of the one below it, and the lowest open layer onto the latest trunk.
-async function start(options: { fork: string; upstream?: string }) {
+// Stops with the state saved when a layer conflicts, which `readRebaseState` tells callers. Returns the merged layers.
+export async function restack(remotes: Remotes, trunk: Trunk): Promise<string[]> {
   // 1. Read the stack and find each layer's own commits, the same way the server does
-  const remotes = await findRemotes(options)
-  const trunk = await findTrunk(remotes, { fetch: true })
   const branch = await currentBranch()
-  if (await git('status', '--porcelain', '--untracked-files=no')) {
-    throw new Error('Commit or stash your changes first.')
-  }
+  await assertClean()
 
-  const stack = await findLocalStack(trunk.oid, branch)
+  const stack = await findLocalStack(trunk.oid, branch, remotes.forkRemote)
   const merged = countMerged(
     await Promise.all(stack.map(layer => findPrState(remotes, layer.name)))
   )
@@ -66,9 +69,7 @@ async function start(options: { fork: string; upstream?: string }) {
     )
   }
 
-  const layers = await Promise.all(
-    stack.map(layer => readLayerState(layer, trunk.oid, remotes.forkRemote))
-  )
+  const layers = await Promise.all(stack.map(layer => readLayerState(layer, trunk.oid)))
   const plans = planLayers(layers, merged)
   if ('ambiguous' in plans) {
     throw new Error(
@@ -80,14 +81,12 @@ async function start(options: { fork: string; upstream?: string }) {
   await replay({
     branch,
     forkRemote: remotes.forkRemote,
-    originals: stack.map(layer => ({ ref: layer.name, oid: layer.headOid })),
+    originals: stack.slice(merged).map(layer => ({ ref: layer.name, oid: layer.headOid })),
     pending: plans.map(plan => ({ ref: plan.ref, baseOid: plan.baseOid })),
     onto: trunk.oid
   })
 
-  for (const layer of stack.slice(0, merged)) {
-    console.log(`${c.cyan(layer.name)} was merged, and can be deleted.`)
-  }
+  return stack.slice(0, merged).map(layer => layer.name)
 }
 
 // The user may have finished git's rebase by hand already, so `git rebase --continue` only runs while one is open.
@@ -126,23 +125,32 @@ async function replay(state: RebaseState): Promise<void> {
 }
 
 async function finish(state: RebaseState) {
-  const changed: string[] = []
-  for (const original of state.originals) {
-    if ((await git('rev-parse', original.ref)) !== original.oid) {
-      changed.push(original.ref)
-    }
-  }
-
   await git('checkout', '--quiet', state.branch)
   await clearRebaseState()
-  if (changed.length === 0) {
+  const refs = await findUnpushed(
+    state.originals.map(original => original.ref),
+    state.forkRemote
+  )
+  if (refs.length === 0) {
     console.log('The stack is up to date already.')
     return
   }
 
   // The lease refuses to overwrite commits pushed from elsewhere since the last fetch.
-  await git('push', '--quiet', '--force-with-lease', state.forkRemote, ...changed)
-  console.log(c.green(`Rebased and pushed ${changed.map(ref => c.cyan(ref)).join(', ')}.`))
+  await git('push', '--quiet', '--force-with-lease', state.forkRemote, ...refs)
+  console.log(c.green(`Pushed ${refs.map(ref => c.cyan(ref)).join(', ')} to your fork.`))
+}
+
+// Commits made on a layer without a rebase need pushing too. Branches not in the fork yet are left to `submit`, which also opens their PRs.
+async function findUnpushed(refs: string[], forkRemote: string) {
+  const unpushed: string[] = []
+  for (const ref of refs) {
+    const pushed = await readForkHead(forkRemote, ref)
+    if (pushed && pushed !== (await git('rev-parse', ref))) {
+      unpushed.push(ref)
+    }
+  }
+  return unpushed
 }
 
 // Branches can't move while one of them is checked out, so HEAD is detached until they are restored.

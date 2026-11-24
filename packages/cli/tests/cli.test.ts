@@ -63,6 +63,21 @@ it('moves up the stack that git ancestry shows, without GitHub', () => {
   expect(git('branch', '--show-current')).toBe('second')
 })
 
+it('moves up after a new commit on a lower branch, though the branch above was created at its old head', () => {
+  const { dir, git } = createClone()
+  createStack(git, ['first', 'second', 'third'])
+  git('checkout', '--quiet', 'second')
+  git('commit', '--allow-empty', '--message', 'second, again')
+
+  const { status, stderr } = run(['up'], {
+    cwd: dir,
+    env: { GH_PATH: join(tmpdir(), 'missing-gh') }
+  })
+  expect(stderr).toBe('')
+  expect(status).toBe(0)
+  expect(git('branch', '--show-current')).toBe('third')
+})
+
 it('asks to install gh when the gh in GH_PATH does not exist', () => {
   const { dir, git } = createClone()
   git('checkout', '--quiet', '-b', 'feature')
