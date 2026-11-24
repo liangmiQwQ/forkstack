@@ -7,8 +7,9 @@ import { requireAuth } from 'void/auth'
 import { getGithubToken } from '../../src/account.ts'
 import { fetchPrs } from '../../src/github.ts'
 import { cacheSavedPrs, readCachedSavedPrs } from '../../src/stack-cache.ts'
+import { unlinkStack } from '../../src/stack-link.ts'
 import { refreshMarkers, unmarkPrs } from '../../src/stack-markers.ts'
-import { deleteStack, listStacks, removePr } from '../../src/stack.ts'
+import { listStacks, removePr } from '../../src/stack.ts'
 
 export type Props = InferProps<typeof loader>
 
@@ -44,8 +45,7 @@ export const actions = {
       throw new HTTPException(404, { message: 'This stack no longer exists.' })
     }
 
-    await deleteStack(stack.id)
-    await unmarkPrs(stack.prs)
+    await unlinkStack(stack)
   }),
 
   removePr: defineHandler.withValidator({
