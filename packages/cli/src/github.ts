@@ -65,6 +65,11 @@ export async function findOpenPr(remotes: Remotes, branch: string): Promise<PrRe
   return pr ? { id: pr.id, number: pr.number, url: pr.url } : null
 }
 
+export async function findPrRef(repo: string, number: number): Promise<PrRef> {
+  const output = await gh(['pr', 'view', String(number), '--repo', repo, '--json', 'id,number,url'])
+  return JSON.parse(output) as PrRef
+}
+
 // A branch without a PR yet counts as open, since it still needs rebasing.
 export async function findPrState(remotes: Remotes, branch: string): Promise<PullRequest['state']> {
   const [owner, name] = remotes.upstream.split('/')

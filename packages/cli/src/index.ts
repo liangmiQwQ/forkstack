@@ -2,8 +2,11 @@ import { cli, define } from 'gunshi'
 import c from 'picocolors'
 
 import pkg from '../package.json' with { type: 'json' }
+import { checkout } from './commands/checkout.ts'
+import { bottom, down, switchBranch, top, trunk, up } from './commands/navigation.ts'
 import { rebase } from './commands/rebase.ts'
 import { submit } from './commands/submit.ts'
+import { unstack } from './commands/unstack.ts'
 import { view } from './commands/view.ts'
 
 const main = define({
@@ -21,7 +24,19 @@ try {
     description: pkg.description,
     // The header repeats on every command, and errors read better without it.
     renderHeader: null,
-    subCommands: { rebase, submit, view }
+    subCommands: {
+      submit,
+      view,
+      checkout,
+      unstack,
+      rebase,
+      up,
+      down,
+      top,
+      bottom,
+      trunk,
+      switch: switchBranch
+    }
   })
 } catch (error) {
   // Errors from forkstack, git and gh are written for the user, so only their message is shown.

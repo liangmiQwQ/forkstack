@@ -17,7 +17,7 @@ export async function findLocalStack(trunkOid: string, branch: string): Promise<
   const branches = await listBranches(trunkOid)
   const current = branches.find(other => other.name === branch)
   if (!current) {
-    throw new Error(`\`${branch}\` has no commits of its own above the trunk.`)
+    throw new Error(`\`${branch}\` has no commits above the trunk, so it is not in a stack.`)
   }
 
   const stack = findStacks(branches).find(stack => stack.includes(current))

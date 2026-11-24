@@ -2,6 +2,7 @@ packages:
   - packages/*
 
 catalog:
+  '@clack/prompts': ^1.9.0
   '@iconify-json/lucide': ^1.2.157
   '@iconify-json/octicon': ^1.2.41
   '@iconify-json/simple-icons': ^1.2.103
