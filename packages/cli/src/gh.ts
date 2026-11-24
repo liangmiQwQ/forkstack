@@ -1,3 +1,5 @@
+import which from 'which'
+
 import { exec } from './exec.ts'
 
 // `gh` sets `GH_PATH` when it runs forkstack as an extension, so the same `gh` is used then.
@@ -12,7 +14,8 @@ export async function gh(args: string[], stdin?: string): Promise<string> {
   try {
     return await exec(GH, args, stdin)
   } catch (error) {
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+    // On Windows, tinyexec can report a missing command as a shell exit instead of ENOENT.
+    if (!(await which(GH, { nothrow: true }))) {
       throw new Error(INSTALL_GH, { cause: error })
     }
     throw error
