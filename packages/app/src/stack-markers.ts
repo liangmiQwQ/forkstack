@@ -1,8 +1,8 @@
+import type { CommentsByPr, PullRequest } from '@forkstack/core/discovery'
+import { renderComment } from '@forkstack/core/marker'
 import { env } from 'void/env'
 
-import type { CommentsByPr, PullRequest } from './discovery.ts'
 import { addComment, deleteComment, fetchViewerComments, updateComment } from './github.ts'
-import { renderComment } from './marker.ts'
 import { saveCommentId } from './stack.ts'
 import type { StoredPr, StoredStack } from './stack.ts'
 

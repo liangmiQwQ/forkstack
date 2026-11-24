@@ -1,0 +1,14 @@
+{
+  "name": "@forkstack/core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Stack logic shared by the forkstack app and CLI.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "test": "vp run ctest"
+  }
+}

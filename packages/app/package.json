@@ -10,10 +10,10 @@
     "deploy": "void deploy",
     "dev": "vp dev --strictPort",
     "postinstall": "void prepare",
-    "preview": "vp preview",
-    "test": "vp run ctest"
+    "preview": "vp preview"
   },
   "dependencies": {
+    "@forkstack/core": "workspace:*",
     "@octokit/auth-app": "catalog:",
     "@octokit/graphql": "catalog:",
     "@octokit/request": "catalog:",

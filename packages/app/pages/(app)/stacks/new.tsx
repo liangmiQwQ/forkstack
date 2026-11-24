@@ -1,3 +1,4 @@
+import type { PullRequest } from '@forkstack/core/discovery'
 import { Form, Link, useForm } from '@void/react'
 import { Suspense, use, useState } from 'react'
 
@@ -8,7 +9,6 @@ import {
   StackRepo,
   SyncStatus
 } from '../../../src/components/stack.tsx'
-import type { PullRequest } from '../../../src/discovery.ts'
 import type { Props } from './new.server.ts'
 
 // A stack keeps its index in the loader's list, since `managed` is aligned with that list.

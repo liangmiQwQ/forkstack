@@ -1,6 +1,5 @@
+import type { PullRequest } from '@forkstack/core/discovery'
 import { kv } from 'void/kv'
-
-import type { PullRequest } from './discovery.ts'
 
 // The cache only fills the first screen until fresh data arrives, so stale entries are harmless and a week covers most return visits.
 const TTL_SECONDS = 7 * 24 * 60 * 60
