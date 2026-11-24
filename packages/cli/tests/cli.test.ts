@@ -24,12 +24,27 @@ function createClone() {
   const dir = mkdtempSync(join(tmpdir(), 'forkstack-'))
   const git = (...args: string[]) =>
     // oxlint-disable-next-line node/no-sync -- blocking is fine in a test
-    spawnSync('git', args, { cwd: dir, encoding: 'utf8' })
+    spawnSync('git', ['-c', 'user.name=test', '-c', 'user.email=test@example.com', ...args], {
+      cwd: dir,
+      encoding: 'utf8'
+    }).stdout.trim()
 
-  git('init', '--initial-branch', 'feature')
+  git('init', '--initial-branch', 'main')
   git('remote', 'add', 'origin', 'https://github.com/me/repo.git')
   git('remote', 'add', 'upstream', 'git@github.com:upstream/repo.git')
-  return dir
+  return { dir, git }
+}
+
+// Commits each branch on top of the previous one, and records `main` as upstream's default branch, like a fetch does.
+function createStack(git: (...args: string[]) => string, branches: string[]) {
+  git('commit', '--allow-empty', '--message', 'trunk')
+  git('update-ref', 'refs/remotes/upstream/main', 'HEAD')
+  git('symbolic-ref', 'refs/remotes/upstream/HEAD', 'refs/remotes/upstream/main')
+
+  for (const branch of branches) {
+    git('checkout', '--quiet', '-b', branch)
+    git('commit', '--allow-empty', '--message', branch)
+  }
 }
 
 it('prints usage with --help', () => {
@@ -38,9 +53,22 @@ it('prints usage with --help', () => {
   expect(stdout).toContain('view')
 })
 
+it('moves up the stack that git ancestry shows, without GitHub', () => {
+  const { dir, git } = createClone()
+  createStack(git, ['first', 'second', 'third'])
+  git('checkout', '--quiet', 'first')
+
+  const { status } = run(['up'], { cwd: dir, env: { GH_PATH: join(tmpdir(), 'missing-gh') } })
+  expect(status).toBe(0)
+  expect(git('branch', '--show-current')).toBe('second')
+})
+
 it('asks to install gh when the gh in GH_PATH does not exist', () => {
+  const { dir, git } = createClone()
+  git('checkout', '--quiet', '-b', 'feature')
+
   const { status, stderr } = run(['view'], {
-    cwd: createClone(),
+    cwd: dir,
     env: { GH_PATH: join(tmpdir(), 'missing-gh') }
   })
   expect(status).toBe(1)

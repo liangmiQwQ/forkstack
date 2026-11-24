@@ -31,6 +31,7 @@
     "test": "vp run ctest"
   },
   "devDependencies": {
+    "@clack/prompts": "catalog:",
     "@forkstack/core": "workspace:*",
     "gunshi": "catalog:",
     "picocolors": "catalog:",

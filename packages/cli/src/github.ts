@@ -64,6 +64,10 @@ export async function findOpenPr(remotes: Remotes, branch: string): Promise<PrRe
   return pr ? { id: pr.id, number: pr.number, url: pr.url } : null
 }
 
+export function findPrRef(repo: string, number: number): Promise<PrRef> {
+  return viewPr([String(number), '--repo', repo])
+}
+
 // A branch without a PR yet counts as open, since it still needs rebasing.
 export async function findPrState(remotes: Remotes, branch: string): Promise<PullRequest['state']> {
   const [owner, name] = remotes.upstream.split('/')
@@ -87,10 +91,14 @@ export async function createPr(
   const args = ['--repo', remotes.upstream, '--base', base, '--head', `${owner}:${branch}`]
   const content = ['--title', options.title, '--body', options.body]
   const url = await gh(['pr', 'create', ...args, ...content, ...(options.draft ? ['--draft'] : [])])
-  return JSON.parse(await gh(['pr', 'view', url, '--json', 'id,number,url'])) as PrRef
+  return viewPr([url])
 }
 
 // Other forks may have a branch with the same name, so only PRs from the user's fork count.
 function isFrom(repo: { nameWithOwner: string } | null, remotes: Remotes) {
   return repo?.nameWithOwner.toLowerCase() === remotes.fork.toLowerCase()
+}
+
+async function viewPr(target: string[]) {
+  return JSON.parse(await gh(['pr', 'view', ...target, '--json', 'id,number,url'])) as PrRef
 }
