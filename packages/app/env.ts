@@ -3,6 +3,8 @@ import { defineEnv, string } from 'void/env'
 export default defineEnv({
   AUTH_GITHUB_CLIENT_ID: string(),
   AUTH_GITHUB_CLIENT_SECRET: string(),
+  // A classic token of the bot account with only `public_repo` (marker comments, reading PRs) and `notifications` (noticing merges).
+  // Branches are rewritten with the GitHub App's tokens instead, so the bot never needs more.
   GITHUB_BOT_TOKEN: string(),
   GITHUB_APP_ID: string(),
   // The app's URL name, used to link users to its install page.
