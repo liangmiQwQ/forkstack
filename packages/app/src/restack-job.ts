@@ -1,16 +1,13 @@
 import type { PullRequest } from '@forkstack/core/discovery'
 import { countMerged } from '@forkstack/core/stack-health'
-import { env } from 'void/env'
 import { kv } from 'void/kv'
 import { queues } from 'void/queues'
 
-import { fetchPrs } from './github.ts'
 import { restack } from './restack.ts'
 import type { RestackResult } from './restack.ts'
-import { refreshMarkers, unmarkPrs } from './stack-markers.ts'
+import { unlinkPrs } from './stack-link.ts'
 import { clearStackPrs } from './stack-status.ts'
-import { deleteStack, getStack, removePr } from './stack.ts'
-import type { StoredStack } from './stack.ts'
+import { getStack } from './stack.ts'
 
 type RestackOutcome = RestackResult | { state: 'running' } | { state: 'failed' }
 
@@ -42,9 +39,15 @@ export function isRunning(status: RestackStatus | null): boolean {
 }
 
 // The restack runs in a queue, since it can take more GitHub requests and time than one page request allows.
-export async function startRestack(stackId: string, onMain: boolean): Promise<void> {
+// Returns `false` when the stack is being restacked already.
+export async function startRestack(stackId: string, onMain: boolean): Promise<boolean> {
+  if (isRunning(await readRestackStatus(stackId))) {
+    return false
+  }
+
   await saveStatus(stackId, { state: 'running' })
   await queues.restack.send({ stackId, onMain })
+  return true
 }
 
 // Every merge check calls this, so it does nothing unless the stack has newly merged PRs at its bottom and open ones above.
@@ -56,12 +59,11 @@ export async function restackIfMerged(stackId: string, prs: PullRequest[]): Prom
   }
 
   const mergeId = prs[merged - 1].id
-  if ((await restackedMerges.get(mergeId)) || isRunning(await readRestackStatus(stackId))) {
+  if ((await restackedMerges.get(mergeId)) || !(await startRestack(stackId, true))) {
     return
   }
 
   await restackedMerges.put(mergeId, true, { ttl: MERGE_TTL_SECONDS })
-  await startRestack(stackId, true)
 }
 
 export async function runRestack(stackId: string, onMain: boolean): Promise<void> {
@@ -75,8 +77,9 @@ export async function runRestack(stackId: string, onMain: boolean): Promise<void
       stack.prs.map(pr => pr.id),
       onMain
     )
+    // Merged PRs are kept until the layers above them move onto the base branch, since they mark where those layers' commits start.
     if (result.state === 'done' && result.merged.length > 0) {
-      await dropMerged(stack, result.merged)
+      await unlinkPrs(stack, result.merged)
     }
     await saveStatus(stackId, result)
   } catch (error) {
@@ -86,30 +89,6 @@ export async function runRestack(stackId: string, onMain: boolean): Promise<void
     // The branches moved, so the status image should read GitHub again.
     await clearStackPrs(stackId)
   }
-}
-
-// Merged PRs are kept until the layers above them move onto the base branch, since they mark where those layers' commits start.
-// A stack needs two PRs, so one left alone is unlinked like on the dashboard.
-async function dropMerged(stack: StoredStack, merged: string[]) {
-  const gone = stack.prs.filter(pr => merged.includes(pr.id))
-  const rest = stack.prs.filter(pr => !merged.includes(pr.id))
-
-  if (rest.length < 2) {
-    await deleteStack(stack.id)
-    await unmarkPrs(stack.prs)
-    return
-  }
-
-  for (const pr of gone) {
-    await removePr(pr.id)
-  }
-  await unmarkPrs(gone)
-
-  const prs = await fetchPrs(
-    env.GITHUB_BOT_TOKEN,
-    rest.map(pr => pr.id)
-  )
-  await refreshMarkers({ ...stack, prs: rest }, prs)
 }
 
 async function saveStatus(stackId: string, status: RestackOutcome) {

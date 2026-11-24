@@ -3,7 +3,7 @@ import * as v from 'valibot'
 import { defineHandler } from 'void'
 
 import { findOwnStack } from '../../../../src/own-stack.ts'
-import { isRunning, readRestackStatus, startRestack } from '../../../../src/restack-job.ts'
+import { startRestack } from '../../../../src/restack-job.ts'
 import { requireTokenUser } from '../../../../src/token-user.ts'
 
 const PARAMS = v.object({ id: v.string() })
@@ -18,10 +18,8 @@ export const POST = defineHandler.withValidator({ params: PARAMS, body: BODY })(
   const { userId } = await requireTokenUser(c)
   const stack = await findOwnStack(userId, params.id)
 
-  if (isRunning(await readRestackStatus(stack.id))) {
+  if (!(await startRestack(stack.id, body.onMain))) {
     throw new HTTPException(409, { message: 'This stack is being rebased already.' })
   }
-
-  await startRestack(stack.id, body.onMain)
   return c.body(null, 202)
 })

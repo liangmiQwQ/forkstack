@@ -1,5 +1,5 @@
 import { stackPrTable, stackTable } from '@schema'
-import { asc, db, eq } from 'void/db'
+import { asc, db, eq, inArray } from 'void/db'
 import type { SQL } from 'void/db'
 
 export interface StoredStack {
@@ -51,8 +51,8 @@ export async function saveCommentId(prId: string, commentId: string): Promise<vo
   await db.update(stackPrTable).set({ commentId }).where(eq(stackPrTable.prId, prId))
 }
 
-export async function removePr(prId: string): Promise<void> {
-  await db.delete(stackPrTable).where(eq(stackPrTable.prId, prId))
+export async function removePrs(prIds: string[]): Promise<void> {
+  await db.delete(stackPrTable).where(inArray(stackPrTable.prId, prIds))
 }
 
 async function queryStacks(where: SQL): Promise<StoredStack[]> {

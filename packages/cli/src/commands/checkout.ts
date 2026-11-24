@@ -1,8 +1,9 @@
 import { define } from 'gunshi'
 import c from 'picocolors'
 
-import { getStack, listStacks } from '../api.ts'
+import { getStack } from '../api.ts'
 import type { Stack } from '../api.ts'
+import { findPrStack } from '../current-stack.ts'
 import { git } from '../git.ts'
 import { findPrRef } from '../github.ts'
 import { findRemotes, REMOTE_ARGS } from '../remotes.ts'
@@ -61,12 +62,7 @@ async function findStack(remotes: Remotes, target: string): Promise<Stack> {
     throw new Error(`\`${target}\` is not a PR URL, a PR number or a stack ID.`)
   }
 
-  const pr = await findPrRef(url?.[1] ?? remotes.upstream, Number(number))
-  const stack = (await listStacks()).find(stack => stack.prIds.includes(pr.id))
-  if (!stack) {
-    throw new Error(`#${pr.number} is not in one of your forkstack stacks.`)
-  }
-  return getStack(stack.id)
+  return findPrStack(await findPrRef(url?.[1] ?? remotes.upstream, Number(number)))
 }
 
 // Local commits that were never pushed would be lost by a reset, so a branch that moved apart is left as it is.

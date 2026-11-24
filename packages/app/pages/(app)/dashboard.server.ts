@@ -6,10 +6,10 @@ import { requireAuth } from 'void/auth'
 
 import { getGithubToken } from '../../src/account.ts'
 import { fetchPrs } from '../../src/github.ts'
+import { findOwnStack } from '../../src/own-stack.ts'
 import { cacheSavedPrs, readCachedSavedPrs } from '../../src/stack-cache.ts'
-import { unlinkStack } from '../../src/stack-link.ts'
-import { refreshMarkers, unmarkPrs } from '../../src/stack-markers.ts'
-import { listStacks, removePr } from '../../src/stack.ts'
+import { unlinkPrs, unlinkStack } from '../../src/stack-link.ts'
+import { listStacks } from '../../src/stack.ts'
 
 export type Props = InferProps<typeof loader>
 
@@ -40,11 +40,7 @@ export const actions = {
     body: v.object({ stackId: v.string() })
   })(async (c, { body }) => {
     const user = requireAuth(c)
-    const stack = (await listStacks(user.id)).find(stack => stack.id === body.stackId)
-    if (!stack) {
-      throw new HTTPException(404, { message: 'This stack no longer exists.' })
-    }
-
+    const stack = await findOwnStack(user.id, body.stackId)
     await unlinkStack(stack)
   }),
 
@@ -55,23 +51,14 @@ export const actions = {
     const stack = (await listStacks(user.id)).find(stack =>
       stack.prs.some(pr => pr.id === body.prId)
     )
-    const pr = stack?.prs.find(pr => pr.id === body.prId)
-    if (!stack || !pr) {
+    if (!stack) {
       throw new HTTPException(404, { message: 'This PR is not in a stack anymore.' })
     }
     if (stack.prs.length <= 2) {
       throw new HTTPException(400, { message: 'A stack needs two PRs. Unlink the stack instead.' })
     }
 
-    await removePr(pr.id)
-    await unmarkPrs([pr])
-
-    const rest = { ...stack, prs: stack.prs.filter(other => other !== pr) }
-    const prs = await fetchPrs(
-      await getGithubToken(c, user.id),
-      rest.prs.map(other => other.id)
-    )
-    await refreshMarkers(rest, prs)
+    await unlinkPrs(stack, [body.prId])
   })
 }
 

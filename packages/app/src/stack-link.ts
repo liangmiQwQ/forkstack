@@ -1,10 +1,11 @@
 import { discoverStacks } from '@forkstack/core/discovery'
 import type { PullRequest } from '@forkstack/core/discovery'
+import { env } from 'void/env'
 
-import { searchOpenPrs } from './github.ts'
+import { fetchPrs, searchOpenPrs } from './github.ts'
 import { addCachedSavedPrs } from './stack-cache.ts'
-import { markPrs, unmarkPrs } from './stack-markers.ts'
-import { createStack, deleteStack, listStacks } from './stack.ts'
+import { markPrs, refreshMarkers, unmarkPrs } from './stack-markers.ts'
+import { createStack, deleteStack, listStacks, removePrs } from './stack.ts'
 import type { StoredStack } from './stack.ts'
 
 // Shared by the "Find stacks" page and the CLI's API, so both save stacks the same way.
@@ -34,6 +35,26 @@ export async function linkStack(
 export async function unlinkStack(stack: StoredStack): Promise<void> {
   await deleteStack(stack.id)
   await unmarkPrs(stack.prs)
+}
+
+// A stack needs two PRs, so when fewer would be left, the whole stack is unlinked.
+export async function unlinkPrs(stack: StoredStack, prIds: string[]): Promise<void> {
+  const gone = stack.prs.filter(pr => prIds.includes(pr.id))
+  const rest = stack.prs.filter(pr => !prIds.includes(pr.id))
+  if (rest.length < 2) {
+    await unlinkStack(stack)
+    return
+  }
+
+  await removePrs(gone.map(pr => pr.id))
+  await unmarkPrs(gone)
+
+  // Each remaining comment lists the whole stack, so they are rewritten without the removed PRs.
+  const prs = await fetchPrs(
+    env.GITHUB_BOT_TOKEN,
+    rest.map(pr => pr.id)
+  )
+  await refreshMarkers({ ...stack, prs: rest }, prs)
 }
 
 // A PR can only be in one stack, so possible stacks that share a PR with a saved stack are left out.

@@ -43,11 +43,9 @@ export const actions = {
     const user = requireAuth(c)
     const stack = await findOwnStack(user.id, readStackId(c))
 
-    if (isRunning(await readRestackStatus(stack.id))) {
+    if (!(await startRestack(stack.id, body.onMain))) {
       throw new HTTPException(409, { message: 'This stack is being rebased already.' })
     }
-
-    await startRestack(stack.id, body.onMain)
   })
 }
 
