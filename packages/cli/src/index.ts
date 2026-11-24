@@ -4,6 +4,7 @@ import c from 'picocolors'
 import pkg from '../package.json' with { type: 'json' }
 import { COMMAND } from './command.ts'
 import { checkout } from './commands/checkout.ts'
+import { login } from './commands/login.ts'
 import { bottom, down, switchBranch, top, trunk, up } from './commands/navigation.ts'
 import { rebase } from './commands/rebase.ts'
 import { submit } from './commands/submit.ts'
@@ -27,6 +28,7 @@ try {
     // The header repeats on every command, and errors read better without it.
     renderHeader: null,
     subCommands: {
+      login,
       submit,
       view,
       checkout,

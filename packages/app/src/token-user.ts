@@ -19,7 +19,7 @@ const TTL_SECONDS = 60
 // Keyed by a hash of the token, so the token itself never reaches storage.
 const githubIdByToken = kv.map<string>('token-github-id')
 
-// The CLI sends the token of the `gh` CLI. A GitHub account is a forkstack account, so the CLI needs no login of its own.
+// The CLI sends the token of the `gh` CLI. A GitHub account is a forkstack account, so the CLI stores no token of its own.
 export async function requireTokenUser(c: CloudContext): Promise<TokenUser> {
   const token = c.req.header('authorization')?.match(/^bearer (.+)$/i)?.[1]
   if (!token) {
@@ -31,7 +31,7 @@ export async function requireTokenUser(c: CloudContext): Promise<TokenUser> {
     throw new HTTPException(401, { message: 'This GitHub token is not valid.' })
   }
 
-  // Users sign in on the web once, which is also where they install the GitHub App on their fork.
+  // Users sign in on the web once with `forkstack login`, which is also where they install the GitHub App on their fork.
   const account = await db
     .select({ userId: accountTable.userId })
     .from(accountTable)
@@ -39,7 +39,7 @@ export async function requireTokenUser(c: CloudContext): Promise<TokenUser> {
     .get()
   if (!account) {
     throw new HTTPException(403, {
-      message: 'Sign in at https://forkstack.dev once before using the CLI.'
+      message: 'Sign in to forkstack once with `forkstack login`.'
     })
   }
 

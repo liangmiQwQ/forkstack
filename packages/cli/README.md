@@ -2,7 +2,7 @@
 
 The CLI of [forkstack](https://forkstack.dev), for stacked pull requests from a fork to its upstream repository.
 
-It needs the [GitHub CLI](https://cli.github.com). Sign in with `gh auth login`, and sign in on [forkstack.dev](https://forkstack.dev) once.
+It needs the [GitHub CLI](https://cli.github.com). Sign in with `gh auth login`, then run `forkstack login` once to sign in on [forkstack.dev](https://forkstack.dev) with the same GitHub account.
 
 ```bash
 npm install -g forkstack
@@ -16,6 +16,7 @@ gh extension install liangmiQwQ/gh-forkstack
 
 | Command                                          | What it does                                                                            |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `forkstack login`                                | Sign in to forkstack in the browser, once                                               |
 | `forkstack submit`                               | Push every branch of the stack to your fork, open their upstream PRs and link the stack |
 | `forkstack view`                                 | Show the stack with each PR's state, checks and review                                  |
 | `forkstack checkout <pr-url \| pr-number \| id>` | Fetch every branch of a stack and check out the top one                                 |

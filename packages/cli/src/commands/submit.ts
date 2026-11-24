@@ -1,10 +1,12 @@
 import { setTimeout } from 'node:timers/promises'
 
+import type { PullRequest } from '@forkstack/core/discovery'
 import { define } from 'gunshi'
 import c from 'picocolors'
 
-import { createStack, deleteStack, listStacks } from '../api.ts'
+import { createStack, deleteStack, getStack, listStacks } from '../api.ts'
 import type { ApiError } from '../api.ts'
+import { COMMAND } from '../command.ts'
 import { currentBranch, git } from '../git.ts'
 import { createPr, findOpenPr } from '../github.ts'
 import type { PrRef } from '../github.ts'
@@ -30,6 +32,7 @@ export const submit = define({
     const remotes = await findRemotes(ctx.values)
     const trunk = await findTrunk(remotes, { fetch: true })
     const stack = await findLocalStack(trunk.oid, await currentBranch(), remotes.forkRemote)
+    const below = stack.length > 1 ? [] : await findRecordedStackBelow(stack[0])
 
     // 2. Push every branch. The lease refuses to overwrite commits pushed from elsewhere.
     const names = stack.map(branch => branch.name)
@@ -41,32 +44,43 @@ export const submit = define({
     let opened = false
     for (const [index, branch] of stack.entries()) {
       const existing = await findOpenPr(remotes, branch.name)
+      const parent = index > 0 ? stack[index - 1] : below.at(-1)
       const pr =
-        existing ??
-        (await openPr(remotes, trunk.branch, branch, stack[index - 1], ctx.values.draft ?? false))
+        existing ?? (await openPr(remotes, trunk.branch, branch, parent, ctx.values.draft ?? false))
       opened ||= !existing
       prs.push(pr)
       console.log(`${existing ? 'Updated' : 'Opened'} #${pr.number} ${c.dim(pr.url)}`)
     }
 
     // 4. Link the stack on forkstack, which posts its comment on every PR
-    if (prs.length < 2) {
-      console.log('A stack needs two branches, so nothing was linked on forkstack.')
-      return
-    }
     await linkStack(
-      prs.map(pr => pr.id),
+      [...below, ...prs].map(pr => pr.id),
       opened
     )
   }
 })
+
+// A single branch is no stack, unless it adds a layer on top of a stack forkstack recorded whose lower branches aren't checked out here.
+async function findRecordedStackBelow(branch: LocalBranch): Promise<PullRequest[]> {
+  const stacks = await Promise.all((await listStacks()).map(summary => getStack(summary.id)))
+  const below = stacks.find(stack => {
+    const top = stack.prs.at(-1)!
+    return top.headOid !== branch.headOid && branch.commits.includes(top.headOid)
+  })
+  if (!below) {
+    throw new Error(
+      `\`${branch.name}\` has no branch above or below it, so it is not a stack. Create the next branch on top of it, or run \`${COMMAND} checkout\` to get the rest of its stack.`
+    )
+  }
+  return below.prs
+}
 
 // The PR is described by the layer's first own commit, like `git` and GitHub describe a single-commit PR.
 async function openPr(
   remotes: Remotes,
   base: string,
   branch: LocalBranch,
-  parent: LocalBranch | undefined,
+  parent: Pick<LocalBranch, 'commits'> | undefined,
   draft: boolean
 ) {
   const own = branch.commits.filter(oid => !parent?.commits.includes(oid))

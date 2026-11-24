@@ -29,6 +29,7 @@
     "build:exe": "vp pack --exe",
     "dev": "vp pack --watch",
     "prepublishOnly": "vp run build",
+    "run": "node src/index.ts",
     "test": "vp run ctest"
   },
   "devDependencies": {
@@ -36,6 +37,7 @@
     "@forkstack/core": "workspace:*",
     "@types/which": "catalog:",
     "gunshi": "catalog:",
+    "open": "catalog:",
     "picocolors": "catalog:",
     "tinyexec": "catalog:",
     "which": "catalog:"

@@ -1,6 +1,11 @@
 import type { PullRequest } from '@forkstack/core/discovery'
 
+import { COMMAND } from './command.ts'
 import { ghToken } from './gh.ts'
+
+export interface User {
+  name: string
+}
 
 export interface StackSummary {
   id: string
@@ -19,6 +24,13 @@ export type ApiError = Error & { status: number }
 
 // Points the CLI at a local `pnpm run dev` server while working on forkstack.
 const BASE_URL = process.env.FORKSTACK_URL ?? 'https://forkstack.dev'
+
+export const LOGIN_URL = new URL('/login', BASE_URL).href
+
+// Answers 403 until the owner of the token has signed in on the web.
+export function getUser(): Promise<User> {
+  return request('GET', '/api/user')
+}
 
 export function listStacks(): Promise<StackSummary[]> {
   return request('GET', '/api/stacks')
@@ -50,11 +62,13 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     throw new Error(`Can't reach forkstack at ${BASE_URL}.`, { cause: error })
   })
 
-  // Errors come back as a sentence for the user, such as asking them to sign in on the web once.
+  // Errors come back as a sentence for the user. Only the CLI knows whether it runs as `gh forkstack`, so it words the sign-in error itself.
   if (!response.ok) {
-    throw Object.assign(new Error(`forkstack: ${await response.text()}`), {
-      status: response.status
-    })
+    const message =
+      response.status === 403
+        ? `Sign in to forkstack once with \`${COMMAND} login\`.`
+        : `forkstack: ${await response.text()}`
+    throw Object.assign(new Error(message), { status: response.status })
   }
   const text = await response.text()
   return (text ? JSON.parse(text) : undefined) as T

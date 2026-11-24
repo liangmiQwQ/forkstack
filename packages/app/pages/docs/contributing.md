@@ -7,7 +7,7 @@ description: Open a stack of PRs from your fork with the forkstack CLI.
 
 ## Install
 
-forkstack needs the [GitHub CLI](https://cli.github.com). Sign in to it, then sign in on [forkstack.dev](/login) once with the same GitHub account.
+forkstack needs the [GitHub CLI](https://cli.github.com). Sign in to it first:
 
 ```sh
 gh auth login
@@ -23,6 +23,12 @@ Or install it from npm, and run it as `forkstack`:
 
 ```sh
 npm install -g forkstack
+```
+
+Then sign in to forkstack once. It opens forkstack.dev in your browser, where you sign in with the same GitHub account as `gh`. forkstack keeps using the token of `gh`, so it stores nothing on your machine.
+
+```sh
+forkstack login
 ```
 
 forkstack expects your fork as the `origin` remote, and the upstream repository as the `upstream` remote. Without an `upstream` remote, it uses your fork's parent on GitHub. Pass `--fork <remote>` or `--upstream <remote>` to any command to use other remotes.
@@ -41,7 +47,7 @@ forkstack submit
 
 `submit` pushes every branch to your fork with `--force-with-lease`, so it never overwrites commits pushed from elsewhere. It opens an upstream PR for each branch that has none, titled and described by the branch's first own commit, then links the stack. Pass `--draft` to open new PRs as drafts.
 
-Run `submit` again after adding a branch on top, or after changing any branch.
+Run `submit` again after adding a branch on top, or after changing any branch. `submit` refuses a single branch, unless it builds on the top PR of a stack you linked before, such as when the lower branches live on another machine.
 
 ## Keep it up to date
 
@@ -69,6 +75,7 @@ It pulls each branch from your fork and replays any commits you made locally on 
 
 | Command                                          | What it does                                                                            |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `forkstack login`                                | Sign in to forkstack in the browser, once                                               |
 | `forkstack submit`                               | Push every branch of the stack to your fork, open their upstream PRs and link the stack |
 | `forkstack view`                                 | Show the stack with each PR's state, checks and review                                  |
 | `forkstack checkout <pr-url \| pr-number \| id>` | Fetch every branch of a stack and check out the top one                                 |
