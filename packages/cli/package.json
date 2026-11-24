@@ -34,8 +34,10 @@
   "devDependencies": {
     "@clack/prompts": "catalog:",
     "@forkstack/core": "workspace:*",
+    "@types/which": "catalog:",
     "gunshi": "catalog:",
     "picocolors": "catalog:",
-    "tinyexec": "catalog:"
+    "tinyexec": "catalog:",
+    "which": "catalog:"
   }
 }

@@ -14,6 +14,7 @@ catalog:
   '@octokit/webhooks-methods': ^6.0.0
   '@types/node': ^26.6.6
   '@types/react': ^19.3.0
+  '@types/which': ^3.0.4
   '@void/react': ^1.11.0
   bumpp: ^12.3.0
   gunshi: ^0.37.3
@@ -29,6 +30,7 @@ catalog:
   vite: npm:@voidzero-dev/vite-plus-core@8.3.8000
   vite-plus: 1.7.0
   void: ^1.11.0
+  which: ^7.0.0
 
 overrides:
   vite@*: 'catalog:'
