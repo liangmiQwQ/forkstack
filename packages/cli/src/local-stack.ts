@@ -7,6 +7,8 @@ export interface LocalBranch {
   headOid: string
   /** Commits on the branch that the trunk doesn't have. */
   commits: string[]
+  /** Every head the branch had, from its reflog, so a branch built on an older version of it still counts as above it. */
+  pastHeads: string[]
 }
 
 // Nothing about a stack is stored locally. Its branches and their order come from git ancestry, the way the server orders a stack's PRs.
@@ -45,9 +47,16 @@ async function listBranches(trunkOid: string): Promise<LocalBranch[]> {
       .filter(Boolean)
       .map(async line => {
         const [name, headOid] = line.split(' ')
-        const commits = await git('rev-list', `${trunkOid}..${headOid}`)
-        return { name, headOid, commits: commits.split('\n').filter(Boolean) }
+        const [commits, reflog] = await Promise.all([
+          git('rev-list', `${trunkOid}..${headOid}`),
+          git('reflog', 'show', '--format=%H', `refs/heads/${name}`).catch(() => '')
+        ])
+        return { name, headOid, commits: lines(commits), pastHeads: lines(reflog) }
       })
   )
   return branches.filter(branch => branch.commits.length > 0)
+}
+
+function lines(output: string) {
+  return output.split('\n').filter(Boolean)
 }

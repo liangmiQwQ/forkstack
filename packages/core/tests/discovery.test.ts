@@ -27,6 +27,18 @@ it('orders a stack bottom to top and leaves unrelated PRs out', () => {
   expect(stacks).toEqual([[bottom, middle, top]])
 })
 
+it('keeps a layer above its parent after the parent was amended, through the parent’s past heads', () => {
+  // The middle branch was created at the bottom's old head, which it still contains, so that past head points the other way.
+  const bottom = {
+    ...pr(1, { headOid: 'oid-1b', commits: ['oid-1b'] }),
+    pastHeads: ['oid-1b', 'oid-1']
+  }
+  const middle = { ...pr(2, { commits: ['oid-1', 'oid-2'] }), pastHeads: ['oid-2', 'oid-1'] }
+  const top = { ...pr(3, { commits: ['oid-1', 'oid-2', 'oid-3'] }), pastHeads: ['oid-3', 'oid-2'] }
+
+  expect(findStacks([top, bottom, middle])).toEqual([[bottom, middle, top]])
+})
+
 it('skips stacks that branch into more than one PR', () => {
   const group = [
     pr(1),
