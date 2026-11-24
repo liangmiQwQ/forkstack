@@ -50,11 +50,14 @@ export function groupCandidates(prs: PullRequest[]): PullRequest[][] {
 }
 
 /** What `findStacks` reads from a PR, so the CLI can also order local branches by their commits. */
-export type Layer = Pick<PullRequest, 'headOid' | 'commits'>
+export type Layer = Pick<PullRequest, 'headOid' | 'commits'> & {
+  /** Heads the layer had before, which a layer above may still be built on, such as after amending this one. */
+  pastHeads?: string[]
+}
 
 // Finds stacks in a candidate group, ordered bottom to top. Branching stacks are skipped for now.
 export function findStacks<T extends Layer>(group: T[]): T[][] {
-  // 1. A PR sits on top of every other PR whose head commit it contains
+  // 1. A PR sits on top of every other PR whose head commit, current or past, it contains
   const ancestors = new Map(group.map(pr => [pr, findAncestors(pr, group)]))
 
   // 2. The nearest ancestor is the one with the most ancestors of its own
@@ -83,7 +86,15 @@ export function isManaged(stack: PullRequest[], comments: CommentsByPr): boolean
 
 function findAncestors<T extends Layer>(pr: T, group: T[]) {
   const own = new Set(pr.commits)
-  return group.filter(other => other !== pr && own.has(other.headOid))
+  return group.filter(
+    other => other !== pr && (own.has(other.headOid) || isOnPastHead(pr, other, own))
+  )
+}
+
+// A branch's first past head is where it was created, often the head of the layer below.
+// That commit is in both branches, so a past head only counts when the other layer doesn't contain this one's head.
+function isOnPastHead<T extends Layer>(pr: T, other: T, own: Set<string>) {
+  return !other.commits.includes(pr.headOid) && (other.pastHeads ?? []).some(oid => own.has(oid))
 }
 
 function walkChain<T>(root: T, children: Map<T, T[]>) {
