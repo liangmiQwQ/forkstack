@@ -1,3 +1,5 @@
+import { planLayers } from '@forkstack/core/restack-plan'
+import type { LayerPlan } from '@forkstack/core/restack-plan'
 import { env } from 'void/env'
 
 import { createGit } from './git.ts'
@@ -5,8 +7,6 @@ import type { Git, RefUpdate } from './git.ts'
 import { getRepoToken } from './github-app.ts'
 import { fetchRestackState } from './github.ts'
 import { replayLayer } from './replay.ts'
-import { planLayers } from './restack-plan.ts'
-import type { LayerPlan } from './restack-plan.ts'
 
 export type RestackResult =
   | { state: 'done'; updated: number; merged: string[] }

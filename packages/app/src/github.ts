@@ -1,8 +1,7 @@
+import type { CommentsByPr, PullRequest } from '@forkstack/core/discovery'
+import type { LayerState } from '@forkstack/core/restack-plan'
+import { countMerged } from '@forkstack/core/stack-health'
 import { graphql, GraphqlResponseError } from '@octokit/graphql'
-
-import type { CommentsByPr, PullRequest } from './discovery.ts'
-import type { LayerState } from './restack-plan.ts'
-import { countMerged } from './stack-health.ts'
 
 // GitHub's `nodes(ids:)` accepts at most 100 IDs per call.
 const NODES_LIMIT = 100

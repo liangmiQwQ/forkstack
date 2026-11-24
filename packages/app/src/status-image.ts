@@ -1,6 +1,6 @@
+import type { PullRequest } from '@forkstack/core/discovery'
 import { icons } from '@iconify-json/octicon/icons.json'
 
-import type { PullRequest } from './discovery.ts'
 import type { StackNotice } from './stack-notice.ts'
 
 export type Theme = 'light' | 'dark'

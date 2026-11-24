@@ -1,5 +1,6 @@
+import type { LayerPlan } from '@forkstack/core/restack-plan'
+
 import type { Git } from './git.ts'
-import type { LayerPlan } from './restack-plan.ts'
 
 // GitHub has no cherry-pick API, but its merge API runs a real 3-way merge and reports conflicts.
 // A commit is cherry-picked by merging it into a scratch commit that has the target's tree and the commit's own parent.

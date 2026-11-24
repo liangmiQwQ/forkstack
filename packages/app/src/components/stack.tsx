@@ -1,7 +1,6 @@
+import type { PullRequest } from '@forkstack/core/discovery'
 import { Suspense, use, useState } from 'react'
 import type { ReactNode } from 'react'
-
-import type { PullRequest } from '../discovery.ts'
 
 /** The repository a stack merges into, and the fork its branches live in. */
 export function StackRepo({ pr }: { pr: PullRequest }) {

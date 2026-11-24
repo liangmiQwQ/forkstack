@@ -1,7 +1,7 @@
+import type { PullRequest } from '@forkstack/core/discovery'
 import { env } from 'void/env'
 import { kv } from 'void/kv'
 
-import type { PullRequest } from './discovery.ts'
 import { fetchPrs } from './github.ts'
 import { getStack } from './stack.ts'
 

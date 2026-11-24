@@ -1,9 +1,9 @@
+import type { PullRequest } from '@forkstack/core/discovery'
 import { Form, Link, useForm, useRouter } from '@void/react'
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 
 import { PendingIcon, PrList, PrRow, StackRepo } from '../../../../src/components/stack.tsx'
-import type { PullRequest } from '../../../../src/discovery.ts'
 import type { RestackStatus } from '../../../../src/restack-job.ts'
 import type { Props } from './restack.server.ts'
 

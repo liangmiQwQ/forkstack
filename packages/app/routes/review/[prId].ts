@@ -1,7 +1,7 @@
+import { findReviewUrl } from '@forkstack/core/review'
 import * as v from 'valibot'
 import { defineHandler } from 'void'
 
-import { findReviewUrl } from '../../src/review.ts'
 import { fetchStackPrs } from '../../src/stack-status.ts'
 import { findStackId } from '../../src/stack.ts'
 

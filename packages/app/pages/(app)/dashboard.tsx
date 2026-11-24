@@ -1,3 +1,4 @@
+import type { PullRequest } from '@forkstack/core/discovery'
 import { Form, Link, useForm } from '@void/react'
 import { Suspense, use, useId, useRef } from 'react'
 import type { ComponentProps, ReactNode } from 'react'
@@ -10,7 +11,6 @@ import {
   StackRepo,
   SyncStatus
 } from '../../src/components/stack.tsx'
-import type { PullRequest } from '../../src/discovery.ts'
 import type { Props } from './dashboard.server.ts'
 
 type SavedStack = Props['saved'][number]

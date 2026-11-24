@@ -1,6 +1,7 @@
-import type { PullRequest } from './discovery.ts'
+import type { PullRequest } from '@forkstack/core/discovery'
+import { countMerged } from '@forkstack/core/stack-health'
+
 import type { RestackStatus } from './restack-job.ts'
-import { countMerged } from './stack-health.ts'
 
 export interface StackNotice {
   /** `problem` asks the user to step in, `running` only says forkstack is at work. */

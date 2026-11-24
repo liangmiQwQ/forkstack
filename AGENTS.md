@@ -14,6 +14,7 @@ All workspace packages live under `packages/`.
 
 - `packages/app` contains the Void + React web app.
 - `packages/cli` contains the `forkstack` CLI, published to npm.
+- `packages/core` contains the pure stack logic shared by the app and the CLI, such as stack discovery and restack planning.
 
 ## Rules
 
