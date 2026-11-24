@@ -1,5 +1,4 @@
 import { discoverStacks, isManaged } from '@forkstack/core/discovery'
-import type { PullRequest } from '@forkstack/core/discovery'
 import { HTTPException } from 'hono/http-exception'
 import * as v from 'valibot'
 import { defer, defineHandler, defineHead } from 'void'
@@ -8,10 +7,10 @@ import { requireAuth } from 'void/auth'
 
 import { getGithubToken } from '../../../src/account.ts'
 import { searchOpenPrs } from '../../../src/github.ts'
-import { addCachedSavedPrs, cacheStacks, readCachedStacks } from '../../../src/stack-cache.ts'
-import { fetchBotComments, markPrs } from '../../../src/stack-markers.ts'
-import { createStack, listStacks } from '../../../src/stack.ts'
-import type { StoredStack } from '../../../src/stack.ts'
+import { cacheStacks, readCachedStacks } from '../../../src/stack-cache.ts'
+import { excludeSaved, linkStack } from '../../../src/stack-link.ts'
+import { fetchBotComments } from '../../../src/stack-markers.ts'
+import { listStacks } from '../../../src/stack.ts'
 
 export type Props = InferProps<typeof loader>
 
@@ -52,30 +51,13 @@ export const actions = {
     body: v.object({ prIds: PR_IDS })
   })(async (c, { body }) => {
     const user = requireAuth(c)
-    const token = await getGithubToken(c, user.id)
-
-    // The stack is found again from GitHub, so only the user's own PRs are saved, in the order their commits show.
-    const [prs, saved] = await Promise.all([searchOpenPrs(token), listStacks(user.id)])
-    const stack = excludeSaved(discoverStacks(prs), saved).find(
-      stack => stack.map(pr => pr.id).join(',') === body.prIds.join(',')
-    )
-    if (!stack) {
+    const id = await linkStack(user.id, await getGithubToken(c, user.id), body.prIds)
+    if (!id) {
       throw new HTTPException(409, { message: 'This stack changed on GitHub. Reload and retry.' })
     }
 
-    // The database is saved first, since it is the source of truth, then the markers go on GitHub.
-    const id = await createStack(user.id, body.prIds)
-    await markPrs(stack, id)
-    // The dashboard renders the new stack from the cache before GitHub answers.
-    await addCachedSavedPrs(user.id, stack)
     return c.redirect('/dashboard')
   })
 }
 
 export const head = defineHead(() => ({ title: 'Find stacks' }))
-
-// A PR can only be in one stack, so possible stacks that share a PR with a saved stack are left out.
-function excludeSaved(stacks: PullRequest[][], saved: StoredStack[]) {
-  const savedIds = new Set(saved.flatMap(stack => stack.prs.map(pr => pr.id)))
-  return stacks.filter(stack => !stack.some(pr => savedIds.has(pr.id)))
-}

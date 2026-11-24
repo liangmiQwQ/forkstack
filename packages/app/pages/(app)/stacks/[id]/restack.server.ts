@@ -8,8 +8,8 @@ import type { PageParams } from 'void/routes'
 
 import { getGithubToken } from '../../../../src/account.ts'
 import { fetchPrs } from '../../../../src/github.ts'
+import { findOwnStack } from '../../../../src/own-stack.ts'
 import { isRunning, readRestackStatus, startRestack } from '../../../../src/restack-job.ts'
-import { listStacks } from '../../../../src/stack.ts'
 
 export type Props = InferProps<typeof loader>
 
@@ -55,12 +55,4 @@ export const head = defineHead(() => ({ title: 'Rebase stack' }))
 
 function readStackId(c: Parameters<typeof loader>[0]) {
   return (c.req.param() as PageParams<'/stacks/[id]/restack'>).id
-}
-
-async function findOwnStack(userId: string, stackId: string) {
-  const stack = (await listStacks(userId)).find(stack => stack.id === stackId)
-  if (!stack) {
-    throw new HTTPException(404, { message: 'This stack does not exist, or is not yours.' })
-  }
-  return stack
 }
