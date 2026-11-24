@@ -57,7 +57,6 @@ interface LatestPrStateResult {
   }
 }
 
-// Other forks may have a branch with the same name, so only the PR from the user's fork counts.
 export async function findOpenPr(remotes: Remotes, branch: string): Promise<PrRef | null> {
   const [owner, name] = remotes.upstream.split('/')
   const result = await graphql<HeadPrsResult>(HEAD_PRS_QUERY, { owner, name, ref: branch })
@@ -91,6 +90,7 @@ export async function createPr(
   return JSON.parse(await gh(['pr', 'view', url, '--json', 'id,number,url'])) as PrRef
 }
 
+// Other forks may have a branch with the same name, so only PRs from the user's fork count.
 function isFrom(repo: { nameWithOwner: string } | null, remotes: Remotes) {
   return repo?.nameWithOwner.toLowerCase() === remotes.fork.toLowerCase()
 }
