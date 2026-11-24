@@ -23,6 +23,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <span className='i-lucide-settings' />
               Settings
             </Link>
+            <Link href='/docs' className='nav-link'>
+              <span className='i-lucide-book-open' />
+              Docs
+            </Link>
           </nav>
 
           {profile?.image && (

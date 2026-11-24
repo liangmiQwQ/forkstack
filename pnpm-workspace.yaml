@@ -15,6 +15,7 @@ catalog:
   '@types/node': ^26.6.6
   '@types/react': ^19.3.0
   '@types/which': ^3.0.4
+  '@void/md': ^1.11.0
   '@void/react': ^1.11.0
   bumpp: ^12.3.0
   gunshi: ^0.37.3

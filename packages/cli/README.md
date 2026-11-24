@@ -27,3 +27,5 @@ gh extension install liangmiQwQ/gh-forkstack
 The stack is read from git: each branch builds on the one below it. Nothing is stored locally.
 
 Your fork is the `origin` remote, and the upstream repository is the `upstream` remote, or your fork's parent on GitHub. Pass `--fork <remote>` or `--upstream <remote>` to use other remotes.
+
+See the [docs](https://forkstack.dev/docs) for more.

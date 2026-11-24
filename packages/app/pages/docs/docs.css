@@ -1,0 +1,190 @@
+/* Prose for the Markdown docs, in the app's neutral palette and fonts from DESIGN.md. */
+/* Void's Markdown theme is left out, since its slate colors win over overrides in dark mode. */
+/* Shades are neutral-500 at an opacity, like the app's UnoCSS classes, so both color schemes share them. */
+.docs {
+  --muted: rgb(115 115 115);
+  --line: rgb(115 115 115 / 0.2);
+  --soft: rgb(115 115 115 / 0.08);
+
+  line-height: 1.75;
+}
+
+/* Void wraps the page in a `div`, so blocks are spaced as its children. */
+.docs > div > * + * {
+  margin-top: 1rem;
+}
+
+/* Headings */
+.docs h1 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.docs h1 + *,
+.docs h2 + *,
+.docs h3 + * {
+  margin-top: 0.75rem;
+}
+
+.docs > div > h2 {
+  margin-top: 2.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.docs > div > h3 {
+  margin-top: 2rem;
+  font-weight: 600;
+}
+
+/* Hides the `#` anchor Void puts before each heading. Headings keep their ids, so links to them still work. */
+.docs .header-anchor {
+  display: none;
+}
+
+/* Text */
+.docs strong {
+  font-weight: 600;
+}
+
+.docs a {
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s;
+}
+
+.docs a:hover {
+  text-decoration-color: currentColor;
+}
+
+.docs :not(pre) > code {
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  background: var(--soft);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.875em;
+  white-space: nowrap;
+}
+
+/* Long commands in tables would push the page wider than a phone screen. */
+@media (max-width: 640px) {
+  .docs td code {
+    white-space: normal;
+  }
+}
+
+/* Lists */
+.docs ul,
+.docs ol {
+  padding-left: 1.25rem;
+}
+
+.docs ul {
+  list-style: disc;
+}
+
+.docs ol {
+  list-style: decimal;
+}
+
+.docs li + li {
+  margin-top: 0.375rem;
+}
+
+.docs li::marker {
+  color: var(--muted);
+}
+
+/* Tables only draw lines between rows, like the app's cards. */
+.docs table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.docs th {
+  color: var(--muted);
+  font-weight: 500;
+  text-align: left;
+}
+
+.docs th,
+.docs td {
+  padding: 0.5rem 1rem 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+/* Code blocks */
+.docs div[class*='language-'] {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--soft);
+}
+
+.docs pre {
+  overflow-x: auto;
+  padding: 0.875rem 1rem;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+
+/* Shiki writes each token's light color inline, and the dark one as `--shiki-dark`. */
+.docs pre.shiki {
+  background: transparent !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .docs pre.shiki,
+  .docs pre.shiki span {
+    color: var(--shiki-dark) !important;
+  }
+}
+
+.docs div[class*='language-'] .lang {
+  display: none;
+}
+
+.docs div[class*='language-'] .copy {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.15s;
+  cursor: pointer;
+}
+
+.docs div[class*='language-']:hover .copy,
+.docs div[class*='language-'] .copy:focus-visible,
+.docs div[class*='language-'] .copy.copied {
+  opacity: 1;
+}
+
+.docs div[class*='language-'] .copy:hover {
+  background: var(--soft);
+  color: currentColor;
+}
+
+.docs div[class*='language-'] .copy::before {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='9' y='9' width='13' height='13' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/%3E%3C/svg%3E")
+    center / 55% no-repeat;
+}
+
+.docs div[class*='language-'] .copy.copied::before {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}

@@ -4,6 +4,8 @@
 
 But what about contributors working from forks? That is how forkstack was born: **To bring stacked PRs from forks to upstream repositories**.
 
+Read the [docs](https://forkstack.dev/docs) to get started.
+
 ## Sponsor
 
 The project is free to use, despite cloud assets still costs quite a lot to implement some of the features.

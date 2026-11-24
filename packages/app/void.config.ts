@@ -10,6 +10,8 @@ export default defineConfig({
   head: {
     titleTemplate: '%s · forkstack',
     htmlAttrs: { lang: 'en' },
+    // Lets the browser draw scrollbars and form controls dark too, following the system like the styles do.
+    meta: [{ name: 'color-scheme', content: 'light dark' }],
     link: [{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }]
   },
   inference: {

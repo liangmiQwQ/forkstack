@@ -20,6 +20,12 @@ export default defineConfig({
     {
       getCSS: () =>
         '@keyframes progress { from { transform: translateX(-100%) } to { transform: translateX(250%) } }'
+    },
+    {
+      // The page background sits on `html`, so overscroll and the browser's own UI match it in dark mode.
+      getCSS: ({ theme }) =>
+        `html { color-scheme: light dark; background: ${theme.colors.white} }
+        @media (prefers-color-scheme: dark) { html { background: ${theme.colors.neutral[950]} } }`
     }
   ],
   shortcuts: {

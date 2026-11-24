@@ -4,19 +4,22 @@ import type { PullRequest } from './discovery.ts'
 export const MARKER = '<!-- forkstack'
 
 const SITE_URL = 'https://forkstack.dev'
+const STACK_DOCS_URL = `${SITE_URL}/docs`
 
 // The comment is only rewritten when the stack's PRs change, so it only holds facts forkstack controls.
 // Live PR status comes from an image forkstack draws on each view, since there are no webhooks to tell when it changes.
 export function renderComment(stackId: string, stack: PullRequest[], index: number): string {
   const pr = stack[index]
 
-  return [
-    `${MARKER}:stack=${stackId} -->`,
+  const body = [
+    `This PR is in a stack (${index + 1} of ${stack.length}). Learn more about [stacked PRs created with forkstack](${STACK_DOCS_URL}).`,
     renderList(stack, index),
     renderLinks(stackId, pr),
-    renderStatusImage(stackId, pr),
-    renderAgentGuide(stack, index)
+    renderStatusImage(stackId, pr)
   ].join('\n\n')
+
+  const warning = `> [!WARNING]\n> ${body.replaceAll('\n', '\n> ')}`
+  return [`${MARKER}:stack=${stackId} -->`, warning, renderAgentGuide(stack, index)].join('\n\n')
 }
 
 // Every PR in a stack merges into the same repository, so GitHub links the short `#123` references.
@@ -32,7 +35,7 @@ function renderList(stack: PullRequest[], index: number) {
 function renderLinks(stackId: string, pr: PullRequest) {
   return [
     `[Review only this PR's changes](${SITE_URL}/review/${pr.id})`,
-    `[Rebase the stack](${SITE_URL}/stacks/${stackId}/restack)`
+    `[Rebase the stack](${SITE_URL}/stacks/${stackId}/restack) (author only)`
   ].join(' · ')
 }
 

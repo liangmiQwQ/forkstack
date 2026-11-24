@@ -19,6 +19,7 @@
     "@octokit/request": "catalog:",
     "@octokit/request-error": "catalog:",
     "@octokit/webhooks-methods": "catalog:",
+    "@void/md": "catalog:",
     "@void/react": "catalog:",
     "hono": "catalog:",
     "react": "catalog:",

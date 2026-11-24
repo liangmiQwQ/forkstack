@@ -1,4 +1,5 @@
 import { liangmi } from '@liangmi/vp-config'
+import { voidMarkdown } from '@void/md/plugin'
 import { voidReact } from '@void/react/plugin'
 import UnoCSS from 'unocss/vite'
 import { voidPlugin } from 'void'
@@ -9,6 +10,7 @@ export default liangmi({
   plugins: [
     voidPlugin(),
     voidReact({ react: { compiler: true }, viewTransitions: true }),
+    voidMarkdown(),
     UnoCSS(`${import.meta.dirname}/uno.config.ts`)
   ]
 })
