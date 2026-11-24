@@ -88,6 +88,20 @@ const COMMENTS_QUERY = /* GraphQL */ `
   }
 `
 
+const HEAD_PRS_QUERY = /* GraphQL */ `
+  query ($owner: String!, $name: String!, $ref: String!) {
+    repository(owner: $owner, name: $name) {
+      ref(qualifiedName: $ref) {
+        associatedPullRequests(first: 100, states: OPEN) {
+          nodes {
+            id
+          }
+        }
+      }
+    }
+  }
+`
+
 const ADD_COMMENT_MUTATION = /* GraphQL */ `
   mutation ($subjectId: ID!, $body: String!) {
     addComment(input: { subjectId: $subjectId, body: $body }) {
@@ -149,6 +163,10 @@ interface CommentsNode {
   comments: { nodes: { body: string; viewerDidAuthor: boolean }[] }
 }
 
+interface HeadPrsResult {
+  repository: { ref: { associatedPullRequests: { nodes: { id: string }[] } } | null } | null
+}
+
 interface AddCommentResult {
   addComment: { commentEdge: { node: { id: string } } }
 }
@@ -196,6 +214,13 @@ export async function fetchViewerComments(
       node.comments.nodes.filter(comment => comment.viewerDidAuthor).map(comment => comment.body)
     ])
   )
+}
+
+// Includes PRs into other repositories, so a fork branch finds its PRs to upstream.
+export async function findPrIdsByHead(token: string, repo: string, ref: string): Promise<string[]> {
+  const [owner, name] = repo.split('/')
+  const result = await createClient(token)<HeadPrsResult>(HEAD_PRS_QUERY, { owner, name, ref })
+  return result.repository?.ref?.associatedPullRequests.nodes.map(pr => pr.id) ?? []
 }
 
 export async function addComment(token: string, subjectId: string, body: string): Promise<string> {

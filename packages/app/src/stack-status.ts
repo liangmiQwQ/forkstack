@@ -31,3 +31,7 @@ export async function fetchStackPrs(stackId: string): Promise<PullRequest[] | nu
   await prsByStack.put(stackId, prs, { ttl: TTL_SECONDS })
   return prs
 }
+
+export async function clearStackPrs(stackId: string): Promise<void> {
+  await prsByStack.delete(stackId)
+}
