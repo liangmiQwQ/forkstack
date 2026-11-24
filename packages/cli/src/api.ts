@@ -14,6 +14,9 @@ export interface Stack {
   prs: PullRequest[]
 }
 
+/** Thrown when forkstack answers with an error status. */
+export type ApiError = Error & { status: number }
+
 // Points the CLI at a local `pnpm run dev` server while working on forkstack.
 const BASE_URL = process.env.FORKSTACK_URL ?? 'https://forkstack.dev'
 
@@ -23,6 +26,17 @@ export function listStacks(): Promise<StackSummary[]> {
 
 export function getStack(id: string): Promise<Stack> {
   return request('GET', `/api/stacks/${id}`)
+}
+
+// The server checks the PRs form this stack on GitHub before it saves it, then posts its comment on each PR.
+export async function createStack(prIds: string[]): Promise<string> {
+  const { id } = await request<{ id: string }>('POST', '/api/stacks', { prIds })
+  return id
+}
+
+// The PRs stay open. Only the stack and its comments go away.
+export function deleteStack(id: string): Promise<void> {
+  return request('DELETE', `/api/stacks/${id}`)
 }
 
 // The server knows the user by the token of `gh`, and never stores it.
@@ -38,7 +52,9 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
   // Errors come back as a sentence for the user, such as asking them to sign in on the web once.
   if (!response.ok) {
-    throw new Error(`forkstack: ${await response.text()}`)
+    throw Object.assign(new Error(`forkstack: ${await response.text()}`), {
+      status: response.status
+    })
   }
   const text = await response.text()
   return (text ? JSON.parse(text) : undefined) as T

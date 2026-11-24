@@ -10,6 +10,8 @@ export interface Remotes {
   forkRemote: string
   /** `owner/name` of the repository the PRs merge into. */
   upstream: string
+  /** Git remote of the upstream repository, or `null` when it was found as the fork's parent on GitHub. */
+  upstreamRemote: string | null
 }
 
 // Every command that talks to GitHub takes these, for clones whose remotes don't follow the usual names.
@@ -35,18 +37,21 @@ export async function findRemotes(options: { fork: string; upstream?: string }):
     )
   }
 
-  const upstream = options.upstream
-    ? await readRemoteRepo(options.upstream)
-    : ((await readRemoteRepo('upstream')) ?? (await findParent(fork)))
-  if (!upstream) {
-    throw new Error(`Can't find the upstream repository of ${fork}. Pass \`--upstream <remote>\`.`)
+  const upstreamRemote = options.upstream ?? 'upstream'
+  const remoteRepo = await readRemoteRepo(upstreamRemote)
+  if (remoteRepo) {
+    return { fork, forkRemote: options.fork, upstream: remoteRepo, upstreamRemote }
   }
 
-  return { fork, forkRemote: options.fork, upstream }
+  const parent = options.upstream ? null : await findParent(fork)
+  if (!parent) {
+    throw new Error(`Can't find the upstream repository of ${fork}. Pass \`--upstream <remote>\`.`)
+  }
+  return { fork, forkRemote: options.fork, upstream: parent, upstreamRemote: null }
 }
 
 // Reads `owner/name` from the URLs GitHub hands out: HTTPS, SSH and `ssh://`.
-export function parseRepo(url: string): string | null {
+function parseRepo(url: string): string | null {
   const match = /github\.com[/:]([^/]+\/[^/]+?)(?:\.git)?\/?$/.exec(url)
   return match?.[1] ?? null
 }

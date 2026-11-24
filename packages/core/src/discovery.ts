@@ -49,14 +49,17 @@ export function groupCandidates(prs: PullRequest[]): PullRequest[][] {
   return [...groups.values()].filter(group => group.length >= 2)
 }
 
+/** What `findStacks` reads from a PR, so the CLI can also order local branches by their commits. */
+export type Layer = Pick<PullRequest, 'headOid' | 'commits'>
+
 // Finds stacks in a candidate group, ordered bottom to top. Branching stacks are skipped for now.
-export function findStacks(group: PullRequest[]): PullRequest[][] {
+export function findStacks<T extends Layer>(group: T[]): T[][] {
   // 1. A PR sits on top of every other PR whose head commit it contains
   const ancestors = new Map(group.map(pr => [pr, findAncestors(pr, group)]))
 
   // 2. The nearest ancestor is the one with the most ancestors of its own
-  const children = new Map<PullRequest, PullRequest[]>()
-  const roots: PullRequest[] = []
+  const children = new Map<T, T[]>()
+  const roots: T[] = []
   for (const pr of group) {
     const parent = ancestors
       .get(pr)!
@@ -78,12 +81,12 @@ export function isManaged(stack: PullRequest[], comments: CommentsByPr): boolean
   return stack.some(pr => comments.get(pr.url)?.some(body => body.includes(MARKER)))
 }
 
-function findAncestors(pr: PullRequest, group: PullRequest[]) {
+function findAncestors<T extends Layer>(pr: T, group: T[]) {
   const own = new Set(pr.commits)
   return group.filter(other => other !== pr && own.has(other.headOid))
 }
 
-function walkChain(root: PullRequest, children: Map<PullRequest, PullRequest[]>) {
+function walkChain<T>(root: T, children: Map<T, T[]>) {
   const chain = [root]
 
   for (let next = children.get(root); next; next = children.get(chain.at(-1)!)) {
