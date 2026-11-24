@@ -13,7 +13,7 @@ export function renderComment(stackId: string, stack: PullRequest[], index: numb
   return [
     `${MARKER}:stack=${stackId} -->`,
     renderList(stack, index),
-    `[Review only this PR's changes](${SITE_URL}/review/${pr.id})`,
+    renderLinks(stackId, pr),
     renderStatusImage(stackId, pr),
     renderAgentGuide(stack, index)
   ].join('\n\n')
@@ -26,6 +26,14 @@ function renderList(stack: PullRequest[], index: number) {
       i === index ? `${i + 1}. **#${pr.number}** (this PR)` : `${i + 1}. #${pr.number}`
     )
     .join('\n')
+}
+
+// Only the stack's owner can rebase it. Anyone else who follows the link is asked to sign in or sees a 404.
+function renderLinks(stackId: string, pr: PullRequest) {
+  return [
+    `[Review only this PR's changes](${SITE_URL}/review/${pr.id})`,
+    `[Rebase the stack](${SITE_URL}/stacks/${stackId}/restack)`
+  ].join(' · ')
 }
 
 // GitHub picks the `<source>` that matches the reader's theme.
