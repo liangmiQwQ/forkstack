@@ -42,3 +42,64 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  # gh installs a precompiled extension from release assets named `gh-forkstack-<os>-<arch>`.
+  executable:
+    name: Executable (${{ matrix.asset }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: gh-forkstack-linux-amd64
+          - os: ubuntu-24.04-arm
+            asset: gh-forkstack-linux-arm64
+          - os: macos-latest
+            asset: gh-forkstack-darwin-arm64
+          - os: macos-15-intel
+            asset: gh-forkstack-darwin-amd64
+          - os: windows-latest
+            asset: gh-forkstack-windows-amd64.exe
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version-file: .node-version
+          cache: true
+          run-install: true
+
+      # Each platform builds natively, so macOS binaries get signed by the runner's own codesign.
+      - name: Build
+        working-directory: packages/cli
+        shell: bash
+        run: |
+          pnpm run build:exe
+          mv build/index* "build/${{ matrix.asset }}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.asset }}
+          path: packages/cli/build/${{ matrix.asset }}
+
+  # The extension repository must be named `gh-*`, so its releases only carry the executables.
+  gh-extension:
+    name: Release gh extension
+    needs: [release, executable]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: executables
+          merge-multiple: true
+
+      - name: Create release
+        run: |
+          gh release create "$GITHUB_REF_NAME" executables/* \
+            --repo liangmiQwQ/gh-forkstack \
+            --title "$GITHUB_REF_NAME" \
+            --notes "See https://github.com/liangmiQwQ/forkstack/releases/tag/$GITHUB_REF_NAME"
+        env:
+          GH_TOKEN: ${{ secrets.GH_EXTENSION_TOKEN }}

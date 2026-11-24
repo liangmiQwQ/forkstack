@@ -26,6 +26,7 @@
   },
   "scripts": {
     "build": "vp run cpack",
+    "build:exe": "vp pack --exe",
     "dev": "vp pack --watch",
     "prepublishOnly": "vp run build",
     "test": "vp run ctest"
