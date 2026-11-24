@@ -157,8 +157,8 @@ function StatusNotice({
     case 'unsupported': {
       return (
         <Notice icon='i-lucide-circle-alert'>
-          A pull request in this stack is no longer open, or has more than 250 commits. forkstack
-          can’t rebase this stack yet.
+          This stack is broken, since a pull request was closed or merged out of order, or one has
+          more than 250 commits. Rebase it locally, then create the stack again.
         </Notice>
       )
     }

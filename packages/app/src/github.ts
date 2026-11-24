@@ -2,6 +2,7 @@ import { graphql, GraphqlResponseError } from '@octokit/graphql'
 
 import type { CommentsByPr, PullRequest } from './discovery.ts'
 import type { LayerState } from './restack-plan.ts'
+import { countMerged } from './stack-health.ts'
 
 // GitHub's `nodes(ids:)` accepts at most 100 IDs per call.
 const NODES_LIMIT = 100
@@ -234,6 +235,8 @@ export interface RestackState {
   repositoryId: string
   /** Head of the branch the stack merges into. */
   mainOid: string
+  /** How many layers at the bottom were merged already. */
+  merged: number
   /** The stack's layers, bottom to top. */
   layers: LayerState[]
 }
@@ -294,7 +297,7 @@ export async function findPrIdsByHead(token: string, repo: string, ref: string):
   return result.repository?.ref?.associatedPullRequests.nodes.map(pr => pr.id) ?? []
 }
 
-// Returns `null` when a restack can't be done from GitHub's data: a PR is no longer open, or has more commits than one request returns.
+// Returns `null` when a restack can't be done from GitHub's data: the stack is broken, or a PR has more commits than one request returns.
 export async function fetchRestackState(
   token: string,
   ids: string[]
@@ -304,10 +307,10 @@ export async function fetchRestackState(
   const stack = ids.map(id => byId.get(id))
 
   const [bottom] = stack
-  const supported = stack.every(
-    node => node?.state === 'OPEN' && node.commits.totalCount === node.commits.nodes.length
-  )
-  if (!supported || !bottom?.headRepository || !bottom.baseRef) {
+  // A deleted PR is gone from the stack like a closed one.
+  const merged = countMerged(stack.map(node => node?.state ?? 'CLOSED'))
+  const complete = stack.every(node => node?.commits.totalCount === node?.commits.nodes.length)
+  if (merged === null || !complete || !bottom?.headRepository || !bottom.baseRef) {
     return null
   }
 
@@ -315,6 +318,7 @@ export async function fetchRestackState(
     repo: bottom.headRepository.nameWithOwner,
     repositoryId: bottom.headRepository.id,
     mainOid: bottom.baseRef.target.oid,
+    merged,
     layers: stack.map(node => toLayerState(node!))
   }
 }
