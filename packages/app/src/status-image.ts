@@ -1,6 +1,7 @@
 import { icons } from '@iconify-json/octicon/icons.json'
 
 import type { PullRequest } from './discovery.ts'
+import type { StackNotice } from './stack-notice.ts'
 
 export type Theme = 'light' | 'dark'
 
@@ -44,19 +45,21 @@ const TITLE_LENGTH = 52
 const SANS = "'Instrument Sans', system-ui, sans-serif"
 const MONO = "'IBM Plex Mono', ui-monospace, monospace"
 
-// Draws one row per PR, bottom of the stack first, with the PR the comment belongs to highlighted.
+// Draws one row per PR, bottom of the stack first, with the PR the comment belongs to highlighted, and the notice below them.
 export function renderStatusImage(
   prs: PullRequest[],
   current: number | null,
+  notice: StackNotice | null,
   theme: Theme
 ): string {
   const palette = PALETTES[theme]
-  const height = prs.length * ROW_HEIGHT
+  const height = (prs.length + (notice ? 1 : 0)) * ROW_HEIGHT
   const rows = prs.map((pr, i) => renderRow(pr, i * ROW_HEIGHT, pr.number === current, palette))
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${height}" viewBox="0 0 ${WIDTH} ${height}">`,
     ...rows,
+    notice ? renderNotice(notice, prs.length * ROW_HEIGHT, palette) : '',
     '</svg>'
   ].join('\n')
 }
@@ -78,6 +81,16 @@ function renderRow(pr: PullRequest, y: number, selected: boolean, palette: Palet
     `<text x="${labelX}" y="${textY}" text-anchor="end" font-family="${SANS}" font-size="13" fill="${labelColor}">${label}</text>`,
     // The label's width is unknown, so the checks icon sits in a fixed column left of the widest label.
     checks ? renderIcon(checks[0], labelX - 140, y + 8, checks[1]) : ''
+  ].join('\n')
+}
+
+function renderNotice(notice: StackNotice, y: number, palette: Palette) {
+  const [icon, color] =
+    notice.kind === 'running' ? ['sync-16', palette.muted] : ['alert-16', palette.amber]
+
+  return [
+    renderIcon(icon, 12, y + 8, color),
+    `<text x="36" y="${y + ROW_HEIGHT / 2 + 4.5}" font-family="${SANS}" font-size="13" fill="${color}">${escapeXml(notice.text)}</text>`
   ].join('\n')
 }
 

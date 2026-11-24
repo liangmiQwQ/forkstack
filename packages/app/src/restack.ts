@@ -9,7 +9,7 @@ import { planLayers } from './restack-plan.ts'
 import type { LayerPlan } from './restack-plan.ts'
 
 export type RestackResult =
-  | { state: 'done'; updated: number }
+  | { state: 'done'; updated: number; merged: string[] }
   | { state: 'conflict'; prId: string; commit: string }
   | { state: 'ambiguous'; prId: string }
   | { state: 'unsupported' }
@@ -20,6 +20,7 @@ export type RestackResult =
 const MAX_COMMITS = 100
 
 // Rebases every layer onto the new head of the layer below it. With `onMain`, the bottom layer also moves onto the latest base branch.
+// Layers merged at the bottom are left out, and the lowest open layer always moves onto the latest base branch, which holds the merged changes.
 export async function restack(prIds: string[], onMain: boolean): Promise<RestackResult> {
   // 1. Read the stack from GitHub and find each layer's own commits
   const state = await fetchRestackState(env.GITHUB_BOT_TOKEN, prIds)
@@ -27,9 +28,13 @@ export async function restack(prIds: string[], onMain: boolean): Promise<Restack
     return { state: 'unsupported' }
   }
 
-  const plans = planLayers(state.layers)
+  const merged = state.layers.slice(0, state.merged).map(layer => layer.prId)
+  const plans = planLayers(state.layers, state.merged)
   if ('ambiguous' in plans) {
     return { state: 'ambiguous', prId: state.layers[plans.ambiguous].prId }
+  }
+  if (plans.length === 0) {
+    return { state: 'done', updated: 0, merged }
   }
 
   const commits = plans.reduce((sum, plan) => sum + plan.commits.length, 0)
@@ -44,7 +49,7 @@ export async function restack(prIds: string[], onMain: boolean): Promise<Restack
   }
 
   const git = createGit(token, state.repo)
-  const onto = onMain ? state.mainOid : plans[0].baseOid
+  const onto = onMain || merged.length > 0 ? state.mainOid : plans[0].baseOid
   const result = await withScratchBranch(git, plans[0].headOid, scratch =>
     replayLayers(git, scratch, onto, plans)
   )
@@ -56,7 +61,7 @@ export async function restack(prIds: string[], onMain: boolean): Promise<Restack
 
   return result.conflict
     ? { state: 'conflict', ...result.conflict }
-    : { state: 'done', updated: result.updates.length }
+    : { state: 'done', updated: result.updates.length, merged }
 }
 
 async function withScratchBranch<T>(git: Git, oid: string, run: (scratch: string) => Promise<T>) {
