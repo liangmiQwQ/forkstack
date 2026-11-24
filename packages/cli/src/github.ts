@@ -1,4 +1,4 @@
-import { graphql } from './gh.ts'
+import { gh, graphql } from './gh.ts'
 import type { Remotes } from './remotes.ts'
 
 export interface PrRef {
@@ -39,4 +39,18 @@ export async function findOpenPr(remotes: Remotes, branch: string): Promise<PrRe
     pr => pr.headRepository?.nameWithOwner.toLowerCase() === remotes.fork.toLowerCase()
   )
   return pr ? { id: pr.id, number: pr.number, url: pr.url } : null
+}
+
+// A fork branch can't be the base of an upstream PR, so every PR in a stack merges into the trunk.
+export async function createPr(
+  remotes: Remotes,
+  base: string,
+  branch: string,
+  options: { title: string; body: string; draft: boolean }
+): Promise<PrRef> {
+  const owner = remotes.fork.split('/')[0]
+  const args = ['--repo', remotes.upstream, '--base', base, '--head', `${owner}:${branch}`]
+  const content = ['--title', options.title, '--body', options.body]
+  const url = await gh(['pr', 'create', ...args, ...content, ...(options.draft ? ['--draft'] : [])])
+  return JSON.parse(await gh(['pr', 'view', url, '--json', 'id,number,url'])) as PrRef
 }
