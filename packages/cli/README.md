@@ -8,6 +8,12 @@ It needs the [GitHub CLI](https://cli.github.com). Sign in with `gh auth login`,
 npm install -g forkstack
 ```
 
+Or install it as a GitHub CLI extension, which needs no Node.js, and run it as `gh forkstack`:
+
+```bash
+gh extension install liangmiQwQ/gh-forkstack
+```
+
 | Command                                          | What it does                                                                            |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------- |
 | `forkstack submit`                               | Push every branch of the stack to your fork, open their upstream PRs and link the stack |

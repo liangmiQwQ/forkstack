@@ -3,6 +3,7 @@ import { countMerged } from '@forkstack/core/stack-health'
 import { define } from 'gunshi'
 import c from 'picocolors'
 
+import { COMMAND } from '../command.ts'
 import { execInteractive } from '../exec.ts'
 import { currentBranch, git } from '../git.ts'
 import { findPrState } from '../github.ts'
@@ -37,7 +38,7 @@ export const rebase = define({
     }
     if (state) {
       throw new Error(
-        'A forkstack rebase is in progress. Run `forkstack rebase --continue` or `--abort`.'
+        `A forkstack rebase is in progress. Run \`${COMMAND} rebase --continue\` or \`--abort\`.`
       )
     }
 
@@ -162,7 +163,7 @@ async function abort(state: RebaseState) {
 function stopAtConflict(state: RebaseState) {
   console.error(
     c.red(
-      `\nResolve the conflicts in \`${state.pending[0].ref}\` and \`git add\` them, then run \`forkstack rebase --continue\`. Run \`forkstack rebase --abort\` to undo.`
+      `\nResolve the conflicts in \`${state.pending[0].ref}\` and \`git add\` them, then run \`${COMMAND} rebase --continue\`. Run \`${COMMAND} rebase --abort\` to undo.`
     )
   )
   process.exitCode = 1
