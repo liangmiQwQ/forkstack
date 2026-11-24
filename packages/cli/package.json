@@ -31,7 +31,9 @@
     "test": "vp run ctest"
   },
   "devDependencies": {
+    "@forkstack/core": "workspace:*",
     "gunshi": "catalog:",
-    "picocolors": "catalog:"
+    "picocolors": "catalog:",
+    "tinyexec": "catalog:"
   }
 }
