@@ -7,14 +7,14 @@ const SITE_URL = 'https://forkstack.dev'
 const STACK_DOCS_URL = `${SITE_URL}/docs`
 
 // The comment is only rewritten when the stack's PRs change, so it only holds facts forkstack controls.
-// Live stack status comes from the rebase button, an image forkstack draws on each view, since there are no webhooks to tell when it changes.
+// Live stack status and the rebase controls are on the stack page the "View stack" button links to.
 export function renderComment(stackId: string, stack: PullRequest[], index: number): string {
   const pr = stack[index]
 
   const body = [
     `This PR is in a stack (${index + 1} of ${stack.length}). Learn more about [stacked PRs created with forkstack](${STACK_DOCS_URL}).`,
     renderList(stack, index),
-    `${renderReviewButton(pr.id)} ${renderRestackButton(stackId)} (author only)`
+    `${renderReviewButton(pr.id)} ${renderStackButton(stackId)}`
   ].join('\n\n')
 
   const warning = `> [!WARNING]\n> ${body.replaceAll('\n', '\n> ')}`
@@ -28,10 +28,13 @@ function renderList(stack: PullRequest[], index: number) {
   return [...prs.toReversed(), `- \`${stack[0].baseRef}\``].join('\n')
 }
 
-// Only the stack's owner can rebase it. Anyone else who follows the link is asked to sign in or sees a 404.
-function renderRestackButton(stackId: string) {
-  const src = `${SITE_URL}/stacks/${stackId}/status`
-  return renderButton(`${SITE_URL}/stacks/${stackId}/restack`, src, 'Rebase the stack')
+// Anyone can view the stack, while only its owner sees the rebase controls there.
+function renderStackButton(stackId: string) {
+  return renderButton(
+    `${SITE_URL}/stacks/${stackId}`,
+    `${SITE_URL}/buttons/stack`,
+    'View the stack'
+  )
 }
 
 function renderReviewButton(prId: string) {

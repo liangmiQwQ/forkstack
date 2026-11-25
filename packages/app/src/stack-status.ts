@@ -5,7 +5,7 @@ import { kv } from 'void/kv'
 import { fetchPrs } from './github.ts'
 import { getStack } from './stack.ts'
 
-// Every view of a PR requests the rebase button image through the bot's shared token, so a short cache keeps it under GitHub's rate limit.
+// Anyone who opens the stack page or a review link reads the PRs through the bot's shared token, so a short cache keeps it under GitHub's rate limit.
 // 60 seconds is also the shortest TTL Cloudflare KV accepts.
 const TTL_SECONDS = 60
 

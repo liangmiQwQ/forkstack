@@ -9,7 +9,7 @@ export interface StackNotice {
   label: string
 }
 
-// Restacks after a merge run without anyone watching the restack page, so the rebase button under each PR tells the user what needs them.
+// Restacks after a merge run without anyone watching the restack page, so the rebase button on the stack page tells the owner what needs them.
 // A button has room for a few words, so the restack page it links to explains each problem.
 export function describeStack(prs: PullRequest[], status: RestackStatus | null): StackNotice {
   if (countMerged(prs.map(pr => pr.state)) === null) {

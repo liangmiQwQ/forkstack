@@ -19,9 +19,9 @@ function StackRebase({ stackId, prs, status: saved, expiredAt, installUrl }: Pro
   return (
     <div className='flex flex-col gap-6'>
       <header className='flex flex-col gap-3'>
-        <Link href='/dashboard' className='nav-link -ml-2.5 self-start'>
+        <Link href={`/stacks/${stackId}`} className='nav-link -ml-2.5 self-start'>
           <span className='i-lucide-arrow-left' />
-          Dashboard
+          Stack
         </Link>
         <h1 className='text-2xl font-semibold'>Rebase stack</h1>
         <p className='max-w-2xl text-sm text-neutral-500'>

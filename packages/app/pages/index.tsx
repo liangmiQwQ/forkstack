@@ -236,8 +236,8 @@ function StackComment() {
             Review diff
           </span>
           <span className='btn-outline pointer-events-none'>
-            <span className='i-octicon-sync-16' />
-            Rebase the stack
+            <span className='i-octicon-stack-16' />
+            View stack
           </span>
         </p>
       </div>
