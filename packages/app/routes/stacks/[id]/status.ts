@@ -3,6 +3,7 @@ import { defineHandler } from 'void'
 
 import { renderRestackButton } from '../../../src/restack-button.ts'
 import { readRestackStatus, restackIfMerged } from '../../../src/restack-job.ts'
+import { syncMarkers } from '../../../src/stack-markers.ts'
 import { describeStack } from '../../../src/stack-notice.ts'
 import { fetchStackPrs } from '../../../src/stack-status.ts'
 
@@ -13,7 +14,7 @@ const QUERY = v.object({
 })
 
 // GitHub's image proxy keeps images unless told not to, so `no-cache` makes each view of the PR show the stack's fresh state.
-// Each view also reads the PRs anyway, so it checks for a merge the notifications missed for free.
+// Each view also reads the PRs anyway, so it checks for a merge the notifications missed and for outdated bot comments for free.
 export const GET = defineHandler.withValidator({ params: PARAMS, query: QUERY })(async (
   c,
   { params, query }
@@ -24,6 +25,7 @@ export const GET = defineHandler.withValidator({ params: PARAMS, query: QUERY })
   }
 
   await restackIfMerged(params.id, prs)
+  await syncMarkers(params.id, prs)
   const notice = describeStack(prs, await readRestackStatus(params.id))
 
   return c.body(renderRestackButton(notice, query.theme), 200, {

@@ -1,10 +1,18 @@
 import type { CommentsByPr, PullRequest } from '@forkstack/core/discovery'
 import { renderComment } from '@forkstack/core/marker'
 import { env } from 'void/env'
+import { kv } from 'void/kv'
 
 import { addComment, deleteComment, fetchViewerComments, updateComment } from './github.ts'
-import { saveCommentId } from './stack.ts'
+import { sha256 } from './hash.ts'
+import { getStack, saveCommentId } from './stack.ts'
 import type { StoredPr, StoredStack } from './stack.ts'
+
+// Long enough to skip rewrites for stacks people keep viewing, short enough that keys of unlinked stacks clean themselves up.
+const RENDERED_TTL_SECONDS = 30 * 24 * 60 * 60
+
+// A hash of each stack's comments as last written, so they are only rewritten when they would render differently.
+const renderedByStack = kv.map<string>('rendered-markers')
 
 // Markers are bot comments, since organizations often block OAuth apps from editing PRs and external contributors can't approve them.
 export async function markPrs(prs: PullRequest[], stackId: string): Promise<void> {
@@ -17,10 +25,28 @@ export async function markPrs(prs: PullRequest[], stackId: string): Promise<void
     )
     await saveCommentId(pr.id, commentId)
   }
+  await saveRendered(stackId, await hashMarkers(stackId, prs))
 }
 
-// Rewrites the comments after the stack's PRs change, since each one lists the whole stack.
-export async function refreshMarkers(stack: StoredStack, prs: PullRequest[]): Promise<void> {
+// Called whenever forkstack reads a stack's PRs, so a release that changes the comment reaches every stack the next time it is viewed.
+// It costs one KV read, and GitHub is only written to when the comments would change.
+export async function syncMarkers(stackId: string, prs: PullRequest[]): Promise<void> {
+  const hash = await hashMarkers(stackId, prs)
+  if ((await renderedByStack.get(stackId)) === hash) {
+    return
+  }
+
+  const stack = await getStack(stackId)
+  if (!stack) {
+    return
+  }
+
+  await refreshMarkers(stack, prs)
+  await saveRendered(stackId, hash)
+}
+
+// Each comment lists the whole stack, so all of them are rewritten.
+async function refreshMarkers(stack: StoredStack, prs: PullRequest[]): Promise<void> {
   const commentIds = new Map(stack.prs.map(pr => [pr.id, pr.commentId]))
 
   for (const [index, pr] of prs.entries()) {
@@ -37,6 +63,14 @@ export async function unmarkPrs(prs: StoredPr[]): Promise<void> {
       await deleteComment(env.GITHUB_BOT_TOKEN, pr.commentId)
     }
   }
+}
+
+function hashMarkers(stackId: string, prs: PullRequest[]): Promise<string> {
+  return sha256(prs.map((_, index) => renderComment(stackId, prs, index)).join('\n'))
+}
+
+async function saveRendered(stackId: string, hash: string): Promise<void> {
+  await renderedByStack.put(stackId, hash, { ttl: RENDERED_TTL_SECONDS })
 }
 
 // Read with the bot token, so a marker someone else copies into a comment is ignored.

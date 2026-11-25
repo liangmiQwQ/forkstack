@@ -4,7 +4,7 @@ import { env } from 'void/env'
 
 import { fetchPrs, searchOpenPrs } from './github.ts'
 import { addCachedSavedPrs } from './stack-cache.ts'
-import { markPrs, refreshMarkers, unmarkPrs } from './stack-markers.ts'
+import { markPrs, syncMarkers, unmarkPrs } from './stack-markers.ts'
 import { createStack, deleteStack, listStacks, removePrs } from './stack.ts'
 import type { StoredStack } from './stack.ts'
 
@@ -54,7 +54,7 @@ export async function unlinkPrs(stack: StoredStack, prIds: string[]): Promise<vo
     env.GITHUB_BOT_TOKEN,
     rest.map(pr => pr.id)
   )
-  await refreshMarkers({ ...stack, prs: rest }, prs)
+  await syncMarkers(stack.id, prs)
 }
 
 // A PR can only be in one stack, so possible stacks that share a PR with a saved stack are left out.
