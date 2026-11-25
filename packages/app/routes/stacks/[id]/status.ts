@@ -1,22 +1,18 @@
 import * as v from 'valibot'
 import { defineHandler } from 'void'
 
+import { renderRestackButton } from '../../../src/restack-button.ts'
 import { readRestackStatus, restackIfMerged } from '../../../src/restack-job.ts'
 import { describeStack } from '../../../src/stack-notice.ts'
 import { fetchStackPrs } from '../../../src/stack-status.ts'
-import { renderStatusImage } from '../../../src/status-image.ts'
 
 const PARAMS = v.object({ id: v.string() })
 
-// The number of the PR whose comment shows the image, highlighted in it.
-const PR_NUMBER = v.pipe(v.string(), v.toNumber())
-
 const QUERY = v.object({
-  pr: v.optional(PR_NUMBER),
   theme: v.optional(v.picklist(['light', 'dark']), 'light')
 })
 
-// GitHub's image proxy keeps images unless told not to, so `no-cache` makes each view of the PR show fresh status.
+// GitHub's image proxy keeps images unless told not to, so `no-cache` makes each view of the PR show the stack's fresh state.
 // Each view also reads the PRs anyway, so it checks for a merge the notifications missed for free.
 export const GET = defineHandler.withValidator({ params: PARAMS, query: QUERY })(async (
   c,
@@ -30,7 +26,7 @@ export const GET = defineHandler.withValidator({ params: PARAMS, query: QUERY })
   await restackIfMerged(params.id, prs)
   const notice = describeStack(prs, await readRestackStatus(params.id))
 
-  return c.body(renderStatusImage(prs, query.pr ?? null, notice, query.theme), 200, {
+  return c.body(renderRestackButton(notice, query.theme), 200, {
     'Content-Type': 'image/svg+xml',
     'Cache-Control': 'no-cache'
   })

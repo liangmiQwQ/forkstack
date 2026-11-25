@@ -13,3 +13,11 @@ it('tells agents which branch range to review and which PRs hold the rest of the
   expect(guide).toContain('(#3) build on this PR')
   expect(guide.trimEnd().endsWith('-->')).toBe(true)
 })
+
+it('lists the stack top first, above its base branch', () => {
+  const stack = [pr(1), pr(2), pr(3)]
+
+  const comment = renderComment('stack', stack, 1)
+
+  expect(comment).toContain('> - #3\n> - #2 (this PR)\n> - #1\n> - `main`')
+})

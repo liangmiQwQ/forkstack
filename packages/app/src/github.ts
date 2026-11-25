@@ -250,7 +250,7 @@ interface NodesResult<T> {
 }
 
 // Repos the user owns are excluded, since a fork stack always merges into someone else's repository.
-// Private repos are excluded, since the stack status image is served to anyone who has its URL.
+// Private repos are excluded, since the rebase button image is served to anyone who has its URL.
 // `@me` resolves to the token's owner, so the GitHub login never needs to be stored.
 export async function searchOpenPrs(token: string): Promise<PullRequest[]> {
   const request = createClient(token)
