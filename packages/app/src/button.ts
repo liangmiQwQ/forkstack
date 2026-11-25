@@ -26,18 +26,28 @@ const CHAR_WIDTH = 7.5
 
 const SANS = "'Instrument Sans', system-ui, sans-serif"
 
-// Draws an outline button whose label and icon follow the stack's state.
+// The label and icon follow the stack's state.
 export function renderRestackButton(notice: StackNotice, theme: Theme): string {
   const palette = PALETTES[theme]
   const [icon, color] = noticeStyle(notice, palette)
+  return renderButton(notice.label, icon, color, palette)
+}
+
+export function renderReviewButton(theme: Theme): string {
+  const palette = PALETTES[theme]
+  return renderButton('Review diff', 'file-diff-16', palette.text, palette)
+}
+
+// Draws an outline button, like the dashboard's `btn-outline`.
+function renderButton(label: string, icon: string, color: string, palette: Palette) {
   const textX = PADDING + ICON_SIZE + GAP
-  const width = Math.ceil(textX + notice.label.length * CHAR_WIDTH + PADDING)
+  const width = Math.ceil(textX + label.length * CHAR_WIDTH + PADDING)
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${HEIGHT}" viewBox="0 0 ${width} ${HEIGHT}">`,
     `<rect x="0.5" y="0.5" width="${width - 1}" height="${HEIGHT - 1}" rx="8" fill="none" stroke="${palette.border}"/>`,
     renderIcon(icon, PADDING, (HEIGHT - ICON_SIZE) / 2, color),
-    `<text x="${textX}" y="${HEIGHT / 2 + 5}" font-family="${SANS}" font-size="14" font-weight="500" fill="${color}">${escapeXml(notice.label)}</text>`,
+    `<text x="${textX}" y="${HEIGHT / 2 + 5}" font-family="${SANS}" font-size="14" font-weight="500" fill="${color}">${escapeXml(label)}</text>`,
     '</svg>'
   ].join('\n')
 }

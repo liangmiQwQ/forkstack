@@ -14,8 +14,7 @@ export function renderComment(stackId: string, stack: PullRequest[], index: numb
   const body = [
     `This PR is in a stack (${index + 1} of ${stack.length}). Learn more about [stacked PRs created with forkstack](${STACK_DOCS_URL}).`,
     renderList(stack, index),
-    `[Review only this PR's changes](${SITE_URL}/review/${pr.id})`,
-    renderRestackButton(stackId)
+    `${renderReviewButton(pr.id)} ${renderRestackButton(stackId)} (author only)`
   ].join('\n\n')
 
   const warning = `> [!WARNING]\n> ${body.replaceAll('\n', '\n> ')}`
@@ -29,17 +28,29 @@ function renderList(stack: PullRequest[], index: number) {
   return [...prs.toReversed(), `- \`${stack[0].baseRef}\``].join('\n')
 }
 
-// GitHub picks the `<source>` that matches the reader's theme, and the alt text keeps the link usable if the image fails to load.
 // Only the stack's owner can rebase it. Anyone else who follows the link is asked to sign in or sees a 404.
 function renderRestackButton(stackId: string) {
   const src = `${SITE_URL}/stacks/${stackId}/status`
+  return renderButton(`${SITE_URL}/stacks/${stackId}/restack`, src, 'Rebase the stack')
+}
+
+function renderReviewButton(prId: string) {
+  return renderButton(
+    `${SITE_URL}/review/${prId}`,
+    `${SITE_URL}/buttons/review`,
+    "Review only this PR's changes"
+  )
+}
+
+// GitHub picks the `<source>` that matches the reader's theme, and the alt text keeps the link usable if the image fails to load.
+function renderButton(href: string, src: string, alt: string) {
   return [
-    `<a href="${SITE_URL}/stacks/${stackId}/restack">`,
+    `<a href="${href}">`,
     '<picture>',
     `  <source media="(prefers-color-scheme: dark)" srcset="${src}?theme=dark">`,
-    `  <img src="${src}" alt="Rebase the stack">`,
+    `  <img src="${src}" alt="${alt}">`,
     '</picture>',
-    '</a> (author only)'
+    '</a>'
   ].join('\n')
 }
 

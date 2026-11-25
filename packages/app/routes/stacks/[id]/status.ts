@@ -1,7 +1,7 @@
 import * as v from 'valibot'
 import { defineHandler } from 'void'
 
-import { renderRestackButton } from '../../../src/restack-button.ts'
+import { renderRestackButton } from '../../../src/button.ts'
 import { readRestackStatus, restackIfMerged } from '../../../src/restack-job.ts'
 import { describeStack } from '../../../src/stack-notice.ts'
 import { fetchStackPrs } from '../../../src/stack-status.ts'

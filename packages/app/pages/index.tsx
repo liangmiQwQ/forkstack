@@ -230,8 +230,11 @@ function StackComment() {
             <code className='font-mono text-xs'>main</code>
           </li>
         </ul>
-        <p className='text-sky-700 dark:text-sky-400'>Review only this PR&apos;s changes</p>
         <p className='flex items-center gap-2'>
+          <span className='btn-outline pointer-events-none'>
+            <span className='i-octicon-file-diff-16' />
+            Review diff
+          </span>
           <span className='btn-outline pointer-events-none'>
             <span className='i-octicon-sync-16' />
             Rebase the stack
