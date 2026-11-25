@@ -76,14 +76,12 @@ function Header({ signedIn }: Props) {
           <span className='i-lucide-layers' />
           forkstack
         </Link>
-        {/* Phones keep only the icons, so the bar stays on one line. */}
         <Link href='/docs' className='btn-ghost'>
           <span className='i-lucide-book-open' />
-          <span className='max-sm:sr-only'>Docs</span>
+          Docs
         </Link>
-        <a href={REPO_URL} className='btn-ghost'>
+        <a href={REPO_URL} className='btn-ghost' aria-label='forkstack on GitHub'>
           <span className='i-simple-icons-github' />
-          <span className='max-sm:sr-only'>Open source</span>
         </a>
         <AccountLink signedIn={signedIn} className='btn-soft ml-2 whitespace-nowrap' />
       </div>
@@ -122,6 +120,10 @@ function Hero({ signedIn }: Props) {
             <span className='i-lucide-lightbulb' />
             Why forkstack
           </Link>
+          <a href={REPO_URL} className='btn-outline px-4 py-2'>
+            <span className='i-simple-icons-github' />
+            View on GitHub
+          </a>
         </div>
         <InstallCommand />
       </div>
