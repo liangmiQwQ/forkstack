@@ -54,9 +54,12 @@ const CONTRIBUTOR_COMMANDS: [command: string, comment: string][] = [
 export default function IndexPage({ signedIn }: Props) {
   return (
     <>
-      <Header signedIn={signedIn} />
-      <main>
+      {/* The header and hero fill the first screen together, so the header has no rule to break it up. */}
+      <div className='flex min-h-dvh flex-col'>
+        <Header signedIn={signedIn} />
         <Hero signedIn={signedIn} />
+      </div>
+      <main>
         <ReviewSection />
         <WorkflowSection />
       </main>
@@ -67,20 +70,22 @@ export default function IndexPage({ signedIn }: Props) {
 
 function Header({ signedIn }: Props) {
   return (
-    <header className='border-b border-neutral-500/20'>
+    <header>
       <div className='mx-auto flex h-14 max-w-6xl items-center gap-1 px-6'>
         <Link href='/' className='mr-auto flex items-center gap-2 font-semibold'>
           <span className='i-lucide-layers' />
           forkstack
         </Link>
+        {/* Phones keep only the icons, so the bar stays on one line. */}
         <Link href='/docs' className='btn-ghost'>
           <span className='i-lucide-book-open' />
-          Docs
+          <span className='max-sm:sr-only'>Docs</span>
         </Link>
-        <a href={REPO_URL} className='btn-ghost' aria-label='forkstack on GitHub'>
+        <a href={REPO_URL} className='btn-ghost'>
           <span className='i-simple-icons-github' />
+          <span className='max-sm:sr-only'>Open source</span>
         </a>
-        <AccountLink signedIn={signedIn} className='btn-soft ml-2' />
+        <AccountLink signedIn={signedIn} className='btn-soft ml-2 whitespace-nowrap' />
       </div>
     </header>
   )
@@ -94,29 +99,28 @@ function AccountLink({ signedIn, className }: Props & { className: string }) {
     </Link>
   ) : (
     <Link href='/login' className={className}>
-      <span className='i-simple-icons-github' />
-      Sign in
+      Get started
+      <span className='i-lucide-arrow-right' />
     </Link>
   )
 }
 
 function Hero({ signedIn }: Props) {
   return (
-    <section className='mx-auto grid max-w-6xl items-center gap-14 px-6 pt-20 pb-24 lg:grid-cols-[1fr_28rem] lg:pt-28'>
+    <section className='mx-auto grid w-full max-w-6xl flex-1 content-center items-center gap-14 px-6 py-16 lg:grid-cols-[1fr_28rem]'>
       <div className='flex min-w-0 flex-col items-start gap-8'>
         <h1 className='text-5xl font-semibold tracking-[-0.035em] text-balance sm:text-6xl'>
           Stacked pull requests, from your fork.
         </h1>
         <p className='max-w-xl text-lg text-pretty text-neutral-500'>
-          GitHub’s stacked PRs need every branch in the upstream repository. forkstack opens a stack
-          from your fork, gives reviewers a diff of each step, and rebases the rest after every
-          merge.
+          Open a stack of PRs from your fork. Reviewers read one step at a time, and merges restack
+          the rest.
         </p>
         <div className='flex flex-wrap gap-3'>
           <AccountLink signedIn={signedIn} className='btn-solid px-4 py-2' />
-          <Link href='/docs' className='btn-outline px-4 py-2'>
-            <span className='i-lucide-book-open' />
-            Read the docs
+          <Link href='/docs/why' className='btn-outline px-4 py-2'>
+            <span className='i-lucide-lightbulb' />
+            Why forkstack
           </Link>
         </div>
         <InstallCommand />
