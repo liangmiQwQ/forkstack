@@ -21,3 +21,9 @@ it('lists the stack top first, above its base branch', () => {
 
   expect(comment).toContain('> - #3\n> - #2 (this PR)\n> - #1\n> - `main`')
 })
+
+it('tells readers the author rebases from the stack page', () => {
+  const comment = renderComment('stack', [pr(1), pr(2)], 0)
+
+  expect(comment).toContain("> The stack's author can rebase it from the stack page.")
+})

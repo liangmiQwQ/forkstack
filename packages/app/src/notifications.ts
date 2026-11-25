@@ -5,7 +5,7 @@ import { kv } from 'void/kv'
 
 import { restackIfMerged } from './restack-job.ts'
 import { syncMarkers } from './stack-markers.ts'
-import { clearStackPrs, fetchStackPrs } from './stack-status.ts'
+import { clearStackStatus, fetchStackPrs } from './stack-status.ts'
 import { findStackId } from './stack.ts'
 
 interface Thread {
@@ -68,7 +68,7 @@ async function checkPr(api: typeof request, url: string) {
   }
 
   // The cached PRs may be from before the merge.
-  await clearStackPrs(stackId)
+  await clearStackStatus(stackId)
   const prs = await fetchStackPrs(stackId)
   if (prs) {
     await restackIfMerged(stackId, prs)

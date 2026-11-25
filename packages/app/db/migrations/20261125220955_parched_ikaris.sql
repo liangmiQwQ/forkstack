@@ -10,6 +10,7 @@ CREATE INDEX `stack_pr_stackId_idx` ON `stack_pr` (`stackId`);--> statement-brea
 CREATE TABLE `stack` (
 	`id` text PRIMARY KEY NOT NULL,
 	`userId` text NOT NULL,
+	`restackStatus` text,
 	`createdAt` integer NOT NULL,
 	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );

@@ -7,15 +7,15 @@ const SITE_URL = 'https://forkstack.dev'
 const STACK_DOCS_URL = `${SITE_URL}/docs`
 
 // The comment is only rewritten when the stack's PRs change, so it only holds facts forkstack controls.
-// Live stack status comes from the rebase button, an image forkstack draws on each view, since there are no webhooks to tell when it changes.
+// Live stack status and the rebase controls are on the stack page the "View stack" button links to.
 export function renderComment(stackId: string, stack: PullRequest[], index: number): string {
   const pr = stack[index]
 
   const body = [
     `This PR is in a stack (${index + 1} of ${stack.length}). Learn more about [stacked PRs created with forkstack](${STACK_DOCS_URL}).`,
     renderList(stack, index),
-    `[Review only this PR's changes](${SITE_URL}/review/${pr.id})`,
-    renderRestackButton(stackId)
+    `${renderReviewButton(pr.id)} ${renderStackButton(stackId)}`,
+    "The stack's author can rebase it from the stack page."
   ].join('\n\n')
 
   const warning = `> [!WARNING]\n> ${body.replaceAll('\n', '\n> ')}`
@@ -29,17 +29,32 @@ function renderList(stack: PullRequest[], index: number) {
   return [...prs.toReversed(), `- \`${stack[0].baseRef}\``].join('\n')
 }
 
+// Anyone can view the stack, while only its owner sees the rebase controls there.
+function renderStackButton(stackId: string) {
+  return renderButton(
+    `${SITE_URL}/stacks/${stackId}`,
+    `${SITE_URL}/buttons/stack`,
+    'View the stack'
+  )
+}
+
+function renderReviewButton(prId: string) {
+  return renderButton(
+    `${SITE_URL}/review/${prId}`,
+    `${SITE_URL}/buttons/review`,
+    "Review only this PR's changes"
+  )
+}
+
 // GitHub picks the `<source>` that matches the reader's theme, and the alt text keeps the link usable if the image fails to load.
-// Only the stack's owner can rebase it. Anyone else who follows the link is asked to sign in or sees a 404.
-function renderRestackButton(stackId: string) {
-  const src = `${SITE_URL}/stacks/${stackId}/status`
+function renderButton(href: string, src: string, alt: string) {
   return [
-    `<a href="${SITE_URL}/stacks/${stackId}/restack">`,
+    `<a href="${href}">`,
     '<picture>',
     `  <source media="(prefers-color-scheme: dark)" srcset="${src}?theme=dark">`,
-    `  <img src="${src}" alt="Rebase the stack">`,
+    `  <img src="${src}" alt="${alt}">`,
     '</picture>',
-    '</a> (author only)'
+    '</a>'
   ].join('\n')
 }
 

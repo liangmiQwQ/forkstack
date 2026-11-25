@@ -1,6 +1,7 @@
 import { index, integer, sqliteTable, text } from 'void/schema-d1'
 
 import { userTable } from '../.void/better-auth-schema.ts'
+import type { RestackStatus } from '../src/restack-status.ts'
 
 // The database is the source of truth for stacks. PRs only carry the stack ID as a marker in a bot comment.
 export const stackTable = sqliteTable(
@@ -10,6 +11,7 @@ export const stackTable = sqliteTable(
     userId: text('userId')
       .notNull()
       .references(() => userTable.id, { onDelete: 'cascade' }),
+    restackStatus: text('restackStatus', { mode: 'json' }).$type<RestackStatus>(),
     createdAt: integer('createdAt', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date())

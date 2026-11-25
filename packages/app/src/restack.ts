@@ -1,4 +1,4 @@
-import { planLayers } from '@forkstack/core/restack-plan'
+import { planLayers, rebaseTargets } from '@forkstack/core/restack-plan'
 import type { LayerPlan } from '@forkstack/core/restack-plan'
 import { env } from 'void/env'
 
@@ -19,21 +19,46 @@ export type RestackResult =
 // Each replayed commit costs about five GitHub requests, and a Worker invocation can only make so many.
 const MAX_COMMITS = 100
 
-// Rebases every layer onto the new head of the layer below it. With `onMain`, the bottom layer also moves onto the latest base branch.
-// Layers merged at the bottom are left out, and the lowest open layer always moves onto the latest base branch, which holds the merged changes.
-export async function restack(prIds: string[], onMain: boolean): Promise<RestackResult> {
-  // 1. Read the stack from GitHub and find each layer's own commits
+async function inspectRestack(prIds: string[]) {
   const state = await fetchRestackState(env.GITHUB_BOT_TOKEN, prIds)
   if (!state) {
-    return { state: 'unsupported' }
+    return { state: 'unsupported' } as const
   }
-
-  const merged = state.layers.slice(0, state.merged).map(layer => layer.prId)
   const plans = planLayers(state.layers, state.merged)
   if ('ambiguous' in plans) {
-    return { state: 'ambiguous', prId: state.layers[plans.ambiguous].prId }
+    return { state: 'ambiguous', prId: state.layers[plans.ambiguous].prId } as const
   }
-  if (plans.length === 0) {
+  return {
+    state: 'ready',
+    stack: state,
+    plans,
+    targets: rebaseTargets(plans, state.mainOid, state.merged)
+  } as const
+}
+
+export type RebaseOptions = Awaited<ReturnType<typeof readRebaseOptions>>
+
+export async function readRebaseOptions(prIds: string[]) {
+  const plan = await inspectRestack(prIds)
+  if (plan.state === 'ready') {
+    return { ...plan.targets, problem: null }
+  }
+  const problem =
+    plan.state === 'ambiguous'
+      ? 'The commits belonging to each layer could not be determined. Rebase locally.'
+      : 'This stack cannot be rebased automatically. Check the pull requests on GitHub.'
+  return { onMain: false, layersOnly: false, problem }
+}
+
+// Read GitHub again when the queued job runs; a branch can move after the request.
+export async function restack(prIds: string[], onMain: boolean): Promise<RestackResult> {
+  const plan = await inspectRestack(prIds)
+  if (plan.state !== 'ready') {
+    return plan
+  }
+  const { stack: state, plans, targets } = plan
+  const merged = state.layers.slice(0, state.merged).map(layer => layer.prId)
+  if (!(onMain ? targets.onMain : targets.layersOnly)) {
     return { state: 'done', updated: 0, merged }
   }
 

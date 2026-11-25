@@ -45,6 +45,16 @@ export function planLayers(
   return plans
 }
 
+// Once a lower layer moves, the layers above it must follow its new head.
+export function rebaseTargets(plans: LayerPlan[], mainOid: string, merged: number) {
+  const baseMoved = plans.length > 0 && plans[0].baseOid !== mainOid
+  const layerMoved = plans.some((plan, i) => i > 0 && plan.baseOid !== plans[i - 1].headOid)
+  return {
+    onMain: baseMoved || layerMoved,
+    layersOnly: layerMoved || (merged > 0 && baseMoved)
+  }
+}
+
 // Walks down from the head until it reaches a commit the parent had at some point.
 // The lowest open layer may stop at the base branch instead, which is where its PR's commits end.
 // That happens when the user rebased it onto the base branch by hand after its parent merged.

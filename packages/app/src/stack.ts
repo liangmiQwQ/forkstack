@@ -4,6 +4,8 @@ import type { SQL } from 'void/db'
 
 export interface StoredStack {
   id: string
+  /** The forkstack user who linked the stack, the only one who can change it. */
+  userId: string
   /** The stack's PRs, bottom to top. */
   prs: StoredPr[]
 }
@@ -57,17 +59,23 @@ export async function removePrs(prIds: string[]): Promise<void> {
 
 async function queryStacks(where: SQL): Promise<StoredStack[]> {
   const rows = await db
-    .select({ stackId: stackTable.id, prId: stackPrTable.prId, commentId: stackPrTable.commentId })
+    .select({
+      stackId: stackTable.id,
+      userId: stackTable.userId,
+      prId: stackPrTable.prId,
+      commentId: stackPrTable.commentId
+    })
     .from(stackTable)
     .innerJoin(stackPrTable, eq(stackPrTable.stackId, stackTable.id))
     .where(where)
     .orderBy(asc(stackTable.createdAt), asc(stackPrTable.position))
 
-  const stacks = new Map<string, StoredPr[]>()
+  const stacks = new Map<string, StoredStack>()
   for (const row of rows) {
-    const pr = { id: row.prId, commentId: row.commentId }
-    stacks.set(row.stackId, [...(stacks.get(row.stackId) ?? []), pr])
+    const stack = stacks.get(row.stackId) ?? { id: row.stackId, userId: row.userId, prs: [] }
+    stack.prs.push({ id: row.prId, commentId: row.commentId })
+    stacks.set(row.stackId, stack)
   }
 
-  return [...stacks].map(([id, prs]) => ({ id, prs }))
+  return [...stacks.values()]
 }
