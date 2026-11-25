@@ -4,6 +4,15 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to deploy after npm publication
+        required: true
+        type: string
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   release:
@@ -17,6 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
           fetch-depth: 0
       - uses: voidzero-dev/setup-vp@v1
         with:
@@ -28,17 +38,19 @@ jobs:
         run: vp run build
 
       - name: Generate GitHub Changelog
+        if: github.event_name == 'push'
         run: vpx changelogithub
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to NPM
+        if: github.event_name == 'push'
         run: vp pm publish -r --access public --no-git-checks
 
       - name: Deploy to Cloudflare
         working-directory: packages/app
-        run: pnpm run deploy
+        run: pnpm run deploy --platform cloudflare
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -64,6 +76,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
       - uses: voidzero-dev/setup-vp@v1
         with:
           node-version-file: .node-version
@@ -97,9 +111,9 @@ jobs:
 
       - name: Create release
         run: |
-          gh release create "$GITHUB_REF_NAME" executables/* \
+          gh release create "$RELEASE_TAG" executables/* \
             --repo liangmiQwQ/gh-forkstack \
-            --title "$GITHUB_REF_NAME" \
-            --notes "See https://github.com/liangmiQwQ/forkstack/releases/tag/$GITHUB_REF_NAME"
+            --title "$RELEASE_TAG" \
+            --notes "See https://github.com/liangmiQwQ/forkstack/releases/tag/$RELEASE_TAG"
         env:
           GH_TOKEN: ${{ secrets.GH_EXTENSION_TOKEN }}
