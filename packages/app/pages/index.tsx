@@ -220,12 +220,11 @@ function StackComment() {
         </p>
         <p>
           This PR is in a stack (2 of 3). Learn more about{' '}
-          <span className='text-sky-700 dark:text-sky-400'>stacked PRs created with forkstack</span>
-          .
+          <span className='text-sky-700 dark:text-sky-400'>stacked PRs</span>.
         </p>
         <p className='text-sky-700 dark:text-sky-400'>
           Review only this PR&apos;s changes <span className='text-neutral-500'>·</span> Rebase the
-          stack <span className='text-neutral-500'>(author only)</span>
+          stack
         </p>
         <ul className='flex flex-col'>
           {STACK.map(pr => (
