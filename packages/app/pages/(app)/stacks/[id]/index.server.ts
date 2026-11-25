@@ -9,6 +9,7 @@ import { readRestackStatus, restackIfMerged } from '../../../../src/restack-job.
 import { describeStack } from '../../../../src/stack-notice.ts'
 import { fetchRebaseOptions, fetchStackPrs } from '../../../../src/stack-status.ts'
 import { getStack } from '../../../../src/stack.ts'
+import { getPublicProfile } from '../../../../src/user.ts'
 
 export type Props = InferProps<typeof loader>
 
@@ -22,9 +23,10 @@ export const loader = defineHandler(async c => {
 
   // Each view reads the PRs anyway, so it checks for a merge the notifications missed for free.
   await restackIfMerged(stackId, prs)
-  const [options, status] = await Promise.all([
+  const [options, status, owner] = await Promise.all([
     fetchRebaseOptions(stack),
-    readRestackStatus(stackId)
+    readRestackStatus(stackId),
+    getPublicProfile(stack.userId)
   ])
 
   const user = getUser()
@@ -32,9 +34,12 @@ export const loader = defineHandler(async c => {
     stackId,
     prs: prs.map(pr => ({ ...pr, reviewUrl: findReviewUrl(prs, pr.id) })),
     notice: describeStack(prs, options, status),
+    owner,
     canRebase: user?.id === stack.userId,
     signedIn: Boolean(user)
   }
 })
 
-export const head = defineHead(() => ({ title: 'Stack' }))
+export const head = defineHead<Props>((_c, { prs }) => ({
+  title: prs[0] ? `Stack · ${prs[0].baseRepo}` : 'Stack'
+}))
