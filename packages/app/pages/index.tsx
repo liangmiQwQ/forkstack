@@ -236,7 +236,6 @@ function StackComment() {
             <span className='i-octicon-sync-16' />
             Rebase the stack
           </span>
-          <span className='text-neutral-500'>(author only)</span>
         </p>
       </div>
     </div>
