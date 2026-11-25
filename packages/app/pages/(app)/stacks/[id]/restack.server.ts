@@ -1,4 +1,3 @@
-import { HTTPException } from 'hono/http-exception'
 import * as v from 'valibot'
 import { defineHandler, defineHead } from 'void'
 import type { InferProps } from 'void'
@@ -9,8 +8,9 @@ import type { PageParams } from 'void/routes'
 import { getGithubToken } from '../../../../src/account.ts'
 import { fetchPrs } from '../../../../src/github.ts'
 import { findOwnStack } from '../../../../src/own-stack.ts'
-import { readRestackStatus, startRestack } from '../../../../src/restack-job.ts'
+import { readRestackStatus, requestRestack } from '../../../../src/restack-job.ts'
 import { RESTACK_TIMEOUT_MS } from '../../../../src/restack-status.ts'
+import { fetchRebaseOptions } from '../../../../src/stack-status.ts'
 
 export type Props = InferProps<typeof loader>
 
@@ -20,18 +20,20 @@ export const loader = defineHandler(async c => {
   const stack = await findOwnStack(user.id, readStackId(c))
 
   const token = await getGithubToken(c, user.id)
-  const [prs, status] = await Promise.all([
+  const [prs, status, options] = await Promise.all([
     fetchPrs(
       token,
       stack.prs.map(pr => pr.id)
     ),
-    readRestackStatus(stack.id)
+    readRestackStatus(stack.id),
+    fetchRebaseOptions(stack)
   ])
 
   return {
     stackId: stack.id,
     prs,
     status,
+    options,
     expiredAt:
       status?.state === 'running' && Date.parse(status.at) + RESTACK_TIMEOUT_MS <= Date.now()
         ? status.at
@@ -47,9 +49,7 @@ export const actions = {
     const user = requireAuth(c)
     const stack = await findOwnStack(user.id, readStackId(c))
 
-    if (!(await startRestack(stack.id, body.onMain))) {
-      throw new HTTPException(409, { message: 'This stack is being rebased already.' })
-    }
+    await requestRestack(stack, body.onMain)
   })
 }
 

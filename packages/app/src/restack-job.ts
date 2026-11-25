@@ -1,6 +1,7 @@
 import type { PullRequest } from '@forkstack/core/discovery'
 import { countMerged } from '@forkstack/core/stack-health'
 import { stackTable } from '@schema'
+import { HTTPException } from 'hono/http-exception'
 import { and, db, eq, sql } from 'void/db'
 import { kv } from 'void/kv'
 import { queues } from 'void/queues'
@@ -8,11 +9,12 @@ import { queues } from 'void/queues'
 import { publishStatus } from './restack-live.ts'
 import { RESTACK_TIMEOUT_MS } from './restack-status.ts'
 import type { RestackStatus } from './restack-status.ts'
-import { restack } from './restack.ts'
+import { readRebaseOptions, restack } from './restack.ts'
 import type { RestackResult } from './restack.ts'
 import { unlinkPrs } from './stack-link.ts'
-import { clearStackPrs } from './stack-status.ts'
+import { clearStackStatus } from './stack-status.ts'
 import { getStack } from './stack.ts'
+import type { StoredStack } from './stack.ts'
 
 // Only the latest result is shown, for one day.
 const STATUS_TTL_MS = 24 * 60 * 60 * 1000
@@ -51,7 +53,22 @@ async function claimRestack(stackId: string) {
   return rows.length > 0 ? status : null
 }
 
-export async function startRestack(stackId: string, onMain: boolean): Promise<boolean> {
+// Both manual entry points check live refs before claiming a job or writing its status.
+export async function requestRestack(stack: StoredStack, onMain: boolean): Promise<boolean> {
+  const options = await readRebaseOptions(stack.prs.map(pr => pr.id))
+  if (options.problem) {
+    throw new HTTPException(409, { message: options.problem })
+  }
+  if (!(onMain ? options.onMain : options.layersOnly)) {
+    return false
+  }
+  if (!(await startRestack(stack.id, onMain))) {
+    throw new HTTPException(409, { message: 'This stack is being rebased already.' })
+  }
+  return true
+}
+
+async function startRestack(stackId: string, onMain: boolean): Promise<boolean> {
   const status = await claimRestack(stackId)
   if (!status) {
     return false
@@ -112,8 +129,8 @@ export async function runRestack(
     await finishRestack(stackId, claim.at, { state: 'failed' })
     throw error
   } finally {
-    // The branches moved, so the rebase button should read GitHub again.
-    await clearStackPrs(stackId)
+    // The branches moved, so the stack page should read GitHub again.
+    await clearStackStatus(stackId)
   }
 }
 

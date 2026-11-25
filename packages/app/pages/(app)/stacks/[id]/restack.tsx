@@ -13,7 +13,7 @@ export default function RestackPage(props: Props) {
   return <StackRebase key={props.stackId} {...props} />
 }
 
-function StackRebase({ stackId, prs, status: saved, expiredAt, installUrl }: Props) {
+function StackRebase({ stackId, prs, status: saved, expiredAt, installUrl, options }: Props) {
   const { status, running } = useRestackStatus(stackId, saved, expiredAt, prs.length)
 
   return (
@@ -31,7 +31,11 @@ function StackRebase({ stackId, prs, status: saved, expiredAt, installUrl }: Pro
         </p>
       </header>
 
-      {status && (
+      {options.problem && <Notice icon='i-lucide-circle-alert'>{options.problem}</Notice>}
+      {!options.problem && !options.onMain && (
+        <Notice icon='i-lucide-circle-check'>This stack is up to date.</Notice>
+      )}
+      {status && (running || (options.onMain && !options.problem)) && (
         <StatusNotice status={status} running={running} prs={prs} installUrl={installUrl} />
       )}
 
@@ -50,7 +54,7 @@ function StackRebase({ stackId, prs, status: saved, expiredAt, installUrl }: Pro
         <RestackButton
           stackId={stackId}
           onMain
-          disabled={running}
+          disabled={running || !options.onMain}
           icon='i-lucide-git-pull-request-arrow'
           label={`Rebase onto ${prs[0]?.baseRef ?? 'base'}`}
           solid
@@ -58,9 +62,11 @@ function StackRebase({ stackId, prs, status: saved, expiredAt, installUrl }: Pro
         <RestackButton
           stackId={stackId}
           onMain={false}
-          disabled={running}
+          disabled={running || !options.layersOnly}
           icon='i-lucide-layers'
-          label='Restack layers only'
+          label={
+            options.onMain && !options.layersOnly ? 'Layers up to date' : 'Restack layers only'
+          }
         />
       </div>
     </div>
@@ -116,10 +122,9 @@ function useRestackStatus(
   const receive = useEffectEvent((data: RestackStatus) => {
     setLatest(previous => (previous && previous.at >= data.at ? previous : data))
     if (
-      data.state === 'done' &&
+      data.state !== 'running' &&
       (!status || data.at > status.at) &&
-      (data.updated > 0 || data.merged.length > 0) &&
-      prCount - data.merged.length >= 2
+      (data.state !== 'done' || prCount - data.merged.length >= 2)
     ) {
       void router.refresh()
     }
@@ -207,7 +212,7 @@ function StatusNotice({
       return (
         <Notice icon='i-lucide-circle-check'>
           {status.updated === 0
-            ? 'The stack was already up to date. Nothing was pushed.'
+            ? 'The last rebase did not need to push any branches.'
             : `Rebased and force-pushed ${status.updated} ${status.updated === 1 ? 'branch' : 'branches'}.`}
         </Notice>
       )
