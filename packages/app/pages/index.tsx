@@ -42,7 +42,6 @@ type StackPr = (typeof STACK)[number]
 
 // The top PR's diff shows the gap most clearly, since GitHub's diff of it holds the whole stack.
 const TOP = STACK[2]
-const TOP_ONLY = [TOP]
 
 const CONTRIBUTOR_COMMANDS: [command: string, comment: string][] = [
   ['git switch -c refactor-parser main', '# commit the first step'],
@@ -61,7 +60,9 @@ export default function IndexPage({ signedIn }: Props) {
       </div>
       <main>
         <ReviewSection />
-        <WorkflowSection />
+        <UpstreamSection />
+        <ContributorSection />
+        <ClosingSection signedIn={signedIn} />
       </main>
       <Footer />
     </>
@@ -120,16 +121,22 @@ function Hero({ signedIn }: Props) {
             <span className='i-lucide-lightbulb' />
             Why forkstack
           </Link>
-          <a href={REPO_URL} className='btn-outline px-4 py-2'>
-            <span className='i-simple-icons-github' />
-            View on GitHub
-          </a>
+          <GitHubButton />
         </div>
         <InstallCommand />
       </div>
 
       <HeroIllustration />
     </section>
+  )
+}
+
+function GitHubButton() {
+  return (
+    <a href={REPO_URL} className='btn-outline px-4 py-2'>
+      <span className='i-simple-icons-github' />
+      View on GitHub
+    </a>
   )
 }
 
@@ -257,122 +264,147 @@ function StatusRow({ pr, selected }: { pr: StackPr; selected: boolean }) {
   )
 }
 
-function ReviewSection() {
+// The sections below the full-screen hero alternate a tinted band, and share the hero's heading scale so the page reads as one piece.
+function Section({ tinted = false, children }: { tinted?: boolean; children: ReactNode }) {
   return (
-    <section className='border-y border-neutral-500/20 bg-neutral-500/[0.03]'>
-      <div className='mx-auto flex max-w-6xl flex-col gap-12 px-6 py-24'>
-        <SectionHeading title='Review one step at a time.'>
-          A PR from a fork can only target <code className='font-mono'>main</code>, so GitHub’s diff
-          of each PR also holds every PR below it. forkstack links each PR to a diff of only its own
-          changes.
-        </SectionHeading>
-
-        <div className='grid gap-6 md:grid-cols-2'>
-          <DiffCard title={`GitHub's diff of #${TOP.number}`} files={STACK} />
-          <DiffCard title={`forkstack's review of #${TOP.number}`} files={TOP_ONLY} highlight>
-            #184 and #185 are left out, since each is reviewed on its own PR.
-          </DiffCard>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function DiffCard({
-  title,
-  files,
-  highlight = false,
-  children
-}: {
-  title: string
-  files: readonly StackPr[]
-  highlight?: boolean
-  children?: ReactNode
-}) {
-  return (
-    <div
-      className={`card bg-white dark:bg-neutral-950 ${highlight ? 'border-neutral-500/40' : ''}`}
-    >
-      <div className='card-header'>
-        <span className='flex items-center gap-2 text-sm font-medium'>
-          <span className={highlight ? 'i-lucide-layers' : 'i-octicon-file-diff-16'} />
-          {title}
-        </span>
-        <span className='text-xs text-neutral-500'>
-          {files.length} {files.length === 1 ? 'file' : 'files'}
-        </span>
-      </div>
-      <ul className='divide-y divide-neutral-500/15'>
-        {files.map(pr => (
-          <li key={pr.number} className='flex items-center gap-3 px-4 py-3'>
-            <span className={`h-5 w-1 rounded-full ${pr.color}`} />
-            <span className='flex-1 truncate font-mono text-sm'>{pr.file}</span>
-            <span className='font-mono text-xs text-neutral-500'>from #{pr.number}</span>
-          </li>
-        ))}
-      </ul>
-      {children && <p className='px-4 pb-4 text-sm text-neutral-500'>{children}</p>}
-    </div>
-  )
-}
-
-function WorkflowSection() {
-  return (
-    <section className='mx-auto grid max-w-6xl gap-16 px-6 py-24 md:grid-cols-2'>
-      <div className='flex min-w-0 flex-col gap-8'>
-        <SectionHeading title='Nothing to install upstream.'>
-          Maintainers review and merge as they always do. forkstack needs no write access and no
-          setup in the upstream repository.
-        </SectionHeading>
-        <ul className='flex flex-col gap-5'>
-          <Point icon='i-lucide-list-ordered' title='The order is visible'>
-            Every PR gets a comment listing the stack bottom to top, with the live state, checks and
-            review of each PR.
-          </Point>
-          <Point icon='i-lucide-git-merge' title='Merges need no cleanup'>
-            Merge the bottom PR with any method. forkstack rebases the rest of the stack onto{' '}
-            <code className='font-mono'>main</code>, so the next PR is ready to merge.
-          </Point>
-        </ul>
-      </div>
-
-      <div className='flex min-w-0 flex-col gap-8'>
-        <SectionHeading title='Contributors keep using git.'>
-          A stack is just branches built on top of each other. One command pushes them, opens the
-          PRs and links them.
-        </SectionHeading>
-        <Terminal lines={CONTRIBUTOR_COMMANDS} />
-      </div>
+    <section className={tinted ? 'border-y border-neutral-500/20 bg-neutral-500/[0.03]' : ''}>
+      <div className='mx-auto flex max-w-6xl flex-col gap-14 px-6 py-28 sm:py-32'>{children}</div>
     </section>
   )
 }
 
 function SectionHeading({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className='flex max-w-2xl flex-col gap-3'>
-      <h2 className='text-3xl font-semibold tracking-[-0.025em]'>{title}</h2>
-      <p className='text-pretty text-neutral-500'>{children}</p>
+    <div className='flex max-w-2xl flex-col gap-4'>
+      <h2 className='text-4xl font-semibold tracking-[-0.03em] text-balance sm:text-5xl'>
+        {title}
+      </h2>
+      <p className='text-lg text-pretty text-neutral-500'>{children}</p>
     </div>
+  )
+}
+
+function ReviewSection() {
+  return (
+    <Section tinted>
+      <SectionHeading title='Review one step at a time.'>
+        A PR from a fork can only target <code className='font-mono'>main</code>, so GitHub’s diff
+        of each PR also holds every PR below it. forkstack links each PR to a diff of only its own
+        changes.
+      </SectionHeading>
+
+      <div className='grid gap-6 md:grid-cols-2'>
+        <DiffCard title={`GitHub's diff of #${TOP.number}`} icon='i-octicon-file-diff-16' />
+        <DiffCard
+          title={`forkstack's review of #${TOP.number}`}
+          icon='i-lucide-layers'
+          only={TOP}
+        />
+      </div>
+    </Section>
+  )
+}
+
+// Both cards list every file, so they line up row by row. With `only`, the files of the PRs below stay visible but faded.
+function DiffCard({ title, icon, only }: { title: string; icon: string; only?: StackPr }) {
+  const count = only ? 1 : STACK.length
+
+  return (
+    <div className={`card bg-white dark:bg-neutral-950 ${only ? 'border-neutral-500/40' : ''}`}>
+      <div className='card-header'>
+        <span className='flex items-center gap-2 text-sm font-medium'>
+          <span className={icon} />
+          {title}
+        </span>
+        <span className='text-xs text-neutral-500'>
+          {count} {count === 1 ? 'file' : 'files'}
+        </span>
+      </div>
+      <ul className='divide-y divide-neutral-500/15'>
+        {STACK.map(pr => {
+          const hidden = only !== undefined && pr !== only
+          return (
+            <li
+              key={pr.number}
+              className={`flex items-center gap-3 px-4 py-3 ${hidden ? 'opacity-35' : ''}`}
+            >
+              <span className={`h-5 w-1 rounded-full ${pr.color}`} />
+              <span className={`flex-1 truncate font-mono text-sm ${hidden ? 'line-through' : ''}`}>
+                {pr.file}
+              </span>
+              <span className='font-mono text-xs text-neutral-500'>
+                {hidden ? `reviewed on #${pr.number}` : `from #${pr.number}`}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+function UpstreamSection() {
+  return (
+    <Section>
+      <SectionHeading title='Nothing to install upstream.'>
+        Maintainers review and merge as they always do. Only the contributor sets forkstack up, on
+        their own fork.
+      </SectionHeading>
+
+      <ul className='grid gap-10 md:grid-cols-3'>
+        <Point icon='i-lucide-list-ordered' title='The order is visible'>
+          Every PR gets a comment listing the stack bottom to top, with the live state, checks and
+          review of each PR.
+        </Point>
+        <Point icon='i-lucide-git-merge' title='Merges need no cleanup'>
+          Merge the bottom PR with any method. forkstack rebases the rest onto{' '}
+          <code className='font-mono'>main</code>, so the next PR is ready to merge.
+        </Point>
+        <Point icon='i-lucide-shield-check' title='No access to grant'>
+          forkstack needs no write access and no setup in the upstream repository.
+        </Point>
+      </ul>
+    </Section>
   )
 }
 
 function Point({ icon, title, children }: { icon: string; title: string; children: ReactNode }) {
   return (
-    <li className='flex gap-4'>
-      <span className='flex size-9 shrink-0 items-center justify-center rounded-lg border border-neutral-500/20'>
-        <span className={icon} />
+    <li className='flex flex-col gap-4'>
+      <span className='flex size-10 items-center justify-center rounded-lg border border-neutral-500/20'>
+        <span className={`${icon} text-lg`} />
       </span>
-      <div className='flex flex-col gap-1'>
+      <div className='flex flex-col gap-1.5'>
         <h3 className='font-medium'>{title}</h3>
-        <p className='text-sm text-neutral-500'>{children}</p>
+        <p className='text-neutral-500'>{children}</p>
       </div>
     </li>
   )
 }
 
+function ContributorSection() {
+  return (
+    <Section tinted>
+      <div className='grid items-center gap-14 lg:grid-cols-[1fr_28rem]'>
+        <div className='flex min-w-0 flex-col items-start gap-8'>
+          <SectionHeading title='Contributors keep using git.'>
+            A stack is just branches built on top of each other. One command pushes them, opens the
+            PRs and links them.
+          </SectionHeading>
+          <Link href='/docs/contributing' className='btn-outline px-4 py-2'>
+            <span className='i-lucide-book-open' />
+            Read the contributing guide
+          </Link>
+        </div>
+        <Terminal lines={CONTRIBUTOR_COMMANDS} />
+      </div>
+    </Section>
+  )
+}
+
 function Terminal({ lines }: { lines: [command: string, comment: string][] }) {
   return (
-    <pre className='card flex flex-col gap-3 overflow-x-auto bg-neutral-900 p-5 font-mono text-sm leading-7 text-neutral-100 dark:bg-neutral-500/5'>
+    <pre className='card flex min-w-0 flex-col gap-3 overflow-x-auto bg-neutral-900 p-6 font-mono text-sm leading-7 text-neutral-100 dark:bg-neutral-950'>
       {lines.map(([command, comment]) => (
         <div key={command}>
           <div className='text-neutral-500'>{comment}</div>
@@ -381,6 +413,24 @@ function Terminal({ lines }: { lines: [command: string, comment: string][] }) {
         </div>
       ))}
     </pre>
+  )
+}
+
+// Mirrors the hero at the end of the page, so readers who scrolled through have the same next steps.
+function ClosingSection({ signedIn }: Props) {
+  return (
+    <section className='mx-auto flex max-w-6xl flex-col items-center gap-8 px-6 py-28 text-center sm:py-36'>
+      <h2 className='text-4xl font-semibold tracking-[-0.03em] sm:text-5xl'>
+        Start your first stack.
+      </h2>
+      <p className='max-w-xl text-lg text-pretty text-neutral-500'>
+        forkstack is free and open source, under the MIT license.
+      </p>
+      <div className='flex flex-wrap justify-center gap-3'>
+        <AccountLink signedIn={signedIn} className='btn-solid px-4 py-2' />
+        <GitHubButton />
+      </div>
+    </section>
   )
 }
 
