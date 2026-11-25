@@ -103,11 +103,10 @@ export async function restackIfMerged(stackId: string, prs: PullRequest[]): Prom
 export async function runRestack(
   stackId: string,
   onMain: boolean,
-  startedAt?: string
+  startedAt: string
 ): Promise<void> {
-  // Messages queued before the D1 migration have no claim yet.
-  const claim = startedAt ? await readRestackStatus(stackId) : await claimRestack(stackId)
-  if (claim?.state !== 'running' || (startedAt && claim.at !== startedAt)) {
+  const claim = await readRestackStatus(stackId)
+  if (claim?.state !== 'running' || claim.at !== startedAt) {
     return
   }
 

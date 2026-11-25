@@ -5,7 +5,7 @@ import { runRestack } from '../src/restack-job.ts'
 interface Message {
   stackId: string
   onMain: boolean
-  startedAt?: string
+  startedAt: string
 }
 
 // A failed restack is not retried, since the user may have pushed in between and should decide again.
