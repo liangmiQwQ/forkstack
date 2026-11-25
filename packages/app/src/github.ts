@@ -77,9 +77,11 @@ const COMMENTS_QUERY = /* GraphQL */ `
   query ($ids: [ID!]!) {
     nodes(ids: $ids) {
       ... on PullRequest {
+        id
         url
         comments(first: 100) {
           nodes {
+            id
             body
             viewerDidAuthor
           }
@@ -204,9 +206,16 @@ interface SearchResult {
   }
 }
 
+export interface Comment {
+  /** GitHub's GraphQL node ID. */
+  id: string
+  body: string
+}
+
 interface CommentsNode {
+  id: string
   url: string
-  comments: { nodes: { body: string; viewerDidAuthor: boolean }[] }
+  comments: { nodes: (Comment & { viewerDidAuthor: boolean })[] }
 }
 
 interface HeadPrsResult {
@@ -276,17 +285,20 @@ export async function fetchViewerComments(
   token: string,
   prs: PullRequest[]
 ): Promise<CommentsByPr> {
-  const nodes = await requestNodes<CommentsNode>(
+  const nodes = await requestViewerComments(
     token,
-    COMMENTS_QUERY,
     prs.map(pr => pr.id)
   )
-  return new Map(
-    nodes.map(node => [
-      node.url,
-      node.comments.nodes.filter(comment => comment.viewerDidAuthor).map(comment => comment.body)
-    ])
-  )
+  return new Map(nodes.map(node => [node.url, node.comments.map(comment => comment.body)]))
+}
+
+// Keyed by PR node ID, with each comment's ID so it can be edited or deleted. Comments are oldest first.
+export async function fetchViewerCommentsById(
+  token: string,
+  prIds: string[]
+): Promise<Map<string, Comment[]>> {
+  const nodes = await requestViewerComments(token, prIds)
+  return new Map(nodes.map(node => [node.id, node.comments]))
 }
 
 // Includes PRs into other repositories, so a fork branch finds its PRs to upstream.
@@ -363,6 +375,17 @@ async function requestNodes<T>(token: string, query: string, ids: string[]): Pro
   )
 
   return results.flatMap(result => result.nodes).filter(node => node !== null)
+}
+
+async function requestViewerComments(token: string, prIds: string[]) {
+  const nodes = await requestNodes<CommentsNode>(token, COMMENTS_QUERY, prIds)
+  return nodes.map(node => ({
+    id: node.id,
+    url: node.url,
+    comments: node.comments.nodes
+      .filter(comment => comment.viewerDidAuthor)
+      .map(comment => ({ id: comment.id, body: comment.body }))
+  }))
 }
 
 function createClient(token: string) {
