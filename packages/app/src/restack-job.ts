@@ -86,7 +86,7 @@ export async function runRestack(stackId: string, onMain: boolean): Promise<void
     await saveStatus(stackId, { state: 'failed' })
     throw error
   } finally {
-    // The branches moved, so the status image should read GitHub again.
+    // The branches moved, so the rebase button should read GitHub again.
     await clearStackPrs(stackId)
   }
 }

@@ -24,7 +24,7 @@ export const REMOTE_ARGS = {
   upstream: {
     type: 'string',
     description:
-      'Git remote of the upstream repository (default: `upstream`, or the fork’s parent on GitHub)'
+      "Git remote of the upstream repository (default: `upstream`, or the fork's parent on GitHub)"
   }
 } satisfies Args
 

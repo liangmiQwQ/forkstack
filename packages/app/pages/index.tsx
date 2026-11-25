@@ -16,7 +16,7 @@ const STACK = [
     file: 'src/parser/stages.ts',
     color: 'bg-sky-500',
     indent: 'pl-3',
-    status: ['Approved', 'text-green-600 dark:text-green-500']
+    isDraft: false
   },
   {
     number: 185,
@@ -25,7 +25,7 @@ const STACK = [
     file: 'src/parser/plugins.ts',
     color: 'bg-amber-500',
     indent: 'pl-6',
-    status: ['Review required', 'text-neutral-500']
+    isDraft: false
   },
   {
     number: 186,
@@ -34,7 +34,7 @@ const STACK = [
     file: 'docs/plugins.md',
     color: 'bg-rose-500',
     indent: 'pl-9',
-    status: ['Draft', 'text-neutral-500']
+    isDraft: true
   }
 ] as const
 
@@ -220,42 +220,45 @@ function StackComment() {
         </p>
         <p>
           This PR is in a stack (2 of 3). Learn more about{' '}
-          <span className='text-sky-700 dark:text-sky-400'>stacked PRs created with forkstack</span>
-          .
+          <span className='text-sky-700 dark:text-sky-400'>stacked PRs</span>.
         </p>
-        <p className='text-sky-700 dark:text-sky-400'>
-          Review only this PR’s changes <span className='text-neutral-500'>·</span> Rebase the stack{' '}
+        <ul className='flex list-disc flex-col gap-1 pl-5 marker:text-neutral-500'>
+          {STACK.toReversed().map(pr => (
+            <PrReference key={pr.number} pr={pr} current={pr === current} />
+          ))}
+          <li>
+            <code className='font-mono text-xs'>main</code>
+          </li>
+        </ul>
+        <p className='text-sky-700 dark:text-sky-400'>Review only this PR&apos;s changes</p>
+        <p className='flex items-center gap-2'>
+          <span className='btn-outline pointer-events-none'>
+            <span className='i-octicon-sync-16' />
+            Rebase the stack
+          </span>
           <span className='text-neutral-500'>(author only)</span>
         </p>
-        <ul className='flex flex-col'>
-          {STACK.map(pr => (
-            <StatusRow key={pr.number} pr={pr} selected={pr === current} />
-          ))}
-        </ul>
       </div>
     </div>
   )
 }
 
-// Mirrors one row of the live status image, which `status-image.ts` draws.
-function StatusRow({ pr, selected }: { pr: StackPr; selected: boolean }) {
-  const [label, labelColor] = pr.status
-  const isDraft = label === 'Draft'
-
+// Mirrors how GitHub renders a `#123` list item, with the PR's state and title.
+function PrReference({ pr, current }: { pr: StackPr; current: boolean }) {
   return (
-    <li
-      className={`flex items-center gap-3 rounded-md px-2 py-1.5 ${selected ? 'bg-neutral-500/10 font-semibold' : ''}`}
-    >
-      <span
-        className={
-          isDraft
-            ? 'i-octicon-git-pull-request-draft-16 shrink-0 text-neutral-500'
-            : 'i-octicon-git-pull-request-16 shrink-0 text-green-600 dark:text-green-500'
-        }
-      />
-      <span className='font-mono text-xs font-normal text-neutral-500'>#{pr.number}</span>
-      <span className='min-w-0 flex-1 truncate'>{pr.title}</span>
-      <span className={`shrink-0 text-xs font-normal ${labelColor}`}>{label}</span>
+    <li>
+      <span className='inline-flex items-center gap-1.5'>
+        <span
+          className={
+            pr.isDraft
+              ? 'i-octicon-git-pull-request-draft-16 shrink-0 text-neutral-500'
+              : 'i-octicon-git-pull-request-16 shrink-0 text-green-600 dark:text-green-500'
+          }
+        />
+        <span className='font-medium'>{pr.title}</span>
+        <span className='text-neutral-500'>#{pr.number}</span>
+        {current && <span className='text-neutral-500'>(this PR)</span>}
+      </span>
     </li>
   )
 }
@@ -284,9 +287,9 @@ function ReviewSection() {
   return (
     <Section tinted>
       <SectionHeading title='Review one step at a time.'>
-        A PR from a fork can only target <code className='font-mono'>main</code>, so GitHub’s diff
-        of each PR also holds every PR below it. forkstack links each PR to a diff of only its own
-        changes.
+        A PR from a fork can only target <code className='font-mono'>main</code>, so GitHub&apos;s
+        diff of each PR also holds every PR below it. forkstack links each PR to a diff of only its
+        own changes.
       </SectionHeading>
 
       <div className='grid gap-6 md:grid-cols-2'>

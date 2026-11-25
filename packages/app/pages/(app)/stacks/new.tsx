@@ -95,7 +95,7 @@ function CandidateList({
       </p>
       {candidates.length === 0 ? (
         <p className='card px-4 py-10 text-center text-sm text-neutral-500'>
-          No stacks match “{query}”.
+          No stacks match &quot;{query}&quot;.
         </p>
       ) : (
         <ul className='card divide-y divide-neutral-500/15'>

@@ -7,46 +7,39 @@ const SITE_URL = 'https://forkstack.dev'
 const STACK_DOCS_URL = `${SITE_URL}/docs`
 
 // The comment is only rewritten when the stack's PRs change, so it only holds facts forkstack controls.
-// Live PR status comes from an image forkstack draws on each view, since there are no webhooks to tell when it changes.
+// Live stack status comes from the rebase button, an image forkstack draws on each view, since there are no webhooks to tell when it changes.
 export function renderComment(stackId: string, stack: PullRequest[], index: number): string {
   const pr = stack[index]
 
   const body = [
     `This PR is in a stack (${index + 1} of ${stack.length}). Learn more about [stacked PRs created with forkstack](${STACK_DOCS_URL}).`,
     renderList(stack, index),
-    renderLinks(stackId, pr),
-    renderStatusImage(stackId, pr)
+    `[Review only this PR's changes](${SITE_URL}/review/${pr.id})`,
+    renderRestackButton(stackId)
   ].join('\n\n')
 
   const warning = `> [!WARNING]\n> ${body.replaceAll('\n', '\n> ')}`
   return [`${MARKER}:stack=${stackId} -->`, warning, renderAgentGuide(stack, index)].join('\n\n')
 }
 
-// Every PR in a stack merges into the same repository, so GitHub links the short `#123` references.
+// Drawn like a stack, with the top PR first and the base branch at the bottom.
+// GitHub renders a `#123` list item with the PR's title and state, so the list needs no live status of its own.
 function renderList(stack: PullRequest[], index: number) {
-  return stack
-    .map((pr, i) =>
-      i === index ? `${i + 1}. **#${pr.number}** (this PR)` : `${i + 1}. #${pr.number}`
-    )
-    .join('\n')
+  const prs = stack.map((pr, i) => (i === index ? `- #${pr.number} (this PR)` : `- #${pr.number}`))
+  return [...prs.toReversed(), `- \`${stack[0].baseRef}\``].join('\n')
 }
 
+// GitHub picks the `<source>` that matches the reader's theme, and the alt text keeps the link usable if the image fails to load.
 // Only the stack's owner can rebase it. Anyone else who follows the link is asked to sign in or sees a 404.
-function renderLinks(stackId: string, pr: PullRequest) {
+function renderRestackButton(stackId: string) {
+  const src = `${SITE_URL}/stacks/${stackId}/status`
   return [
-    `[Review only this PR's changes](${SITE_URL}/review/${pr.id})`,
-    `[Rebase the stack](${SITE_URL}/stacks/${stackId}/restack) (author only)`
-  ].join(' · ')
-}
-
-// GitHub picks the `<source>` that matches the reader's theme.
-function renderStatusImage(stackId: string, pr: PullRequest) {
-  const src = `${SITE_URL}/stacks/${stackId}/status?pr=${pr.number}`
-  return [
+    `<a href="${SITE_URL}/stacks/${stackId}/restack">`,
     '<picture>',
-    `  <source media="(prefers-color-scheme: dark)" srcset="${src}&amp;theme=dark">`,
-    `  <img src="${src}">`,
-    '</picture>'
+    `  <source media="(prefers-color-scheme: dark)" srcset="${src}?theme=dark">`,
+    `  <img src="${src}" alt="Rebase the stack">`,
+    '</picture>',
+    '</a> (author only)'
   ].join('\n')
 }
 

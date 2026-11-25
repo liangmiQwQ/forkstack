@@ -22,8 +22,8 @@ export default function RestackPage({ stackId, prs, status, running, installUrl 
         </Link>
         <h1 className='text-2xl font-semibold'>Rebase stack</h1>
         <p className='max-w-2xl text-sm text-neutral-500'>
-          forkstack replays each pull request’s own commits onto the new head of the one below it,
-          then force-pushes every branch that changed at once. Checks run again on those pull
+          forkstack replays each pull request&apos;s own commits onto the new head of the one below
+          it, then force-pushes every branch that changed at once. Checks run again on those pull
           requests.
         </p>
       </header>
@@ -148,9 +148,9 @@ function StatusNotice({
     case 'ambiguous': {
       return (
         <Notice icon='i-lucide-circle-help'>
-          forkstack can’t tell which commits in #{number(status.prId)} belong to the pull request
-          below it, such as when its branch was built on commits never pushed to that pull request,
-          or contains a merge commit. Rebase it locally, push, then restack again.
+          forkstack can&apos;t tell which commits in #{number(status.prId)} belong to the pull
+          request below it, such as when its branch was built on commits never pushed to that pull
+          request, or contains a merge commit. Rebase it locally, push, then restack again.
         </Notice>
       )
     }
