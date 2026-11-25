@@ -9,7 +9,7 @@ function layer(prId: string, chain: string[], pastHeads: string[] = []): LayerSt
   return { prId, ref: `branch-${prId}`, headOid: chain.at(-1)!, commits, pastHeads }
 }
 
-it('finds only the layer’s own commits after its parent was squashed and force-pushed', () => {
+it("finds only the layer's own commits after its parent was squashed and force-pushed", () => {
   const plans = planLayers(
     [
       layer('1', ['main', 'squashed'], ['old-1b']),
@@ -24,7 +24,7 @@ it('finds only the layer’s own commits after its parent was squashed and force
   ])
 })
 
-it('finds the parent’s current head when the layer was restacked by hand', () => {
+it("finds the parent's current head when the layer was restacked by hand", () => {
   const plans = planLayers([layer('1', ['main', '1a']), layer('2', ['main', '1a', '2a'])], 0)
 
   expect(plans).toMatchObject([{ commits: ['1a'] }, { baseOid: '1a', commits: ['2a'] }])

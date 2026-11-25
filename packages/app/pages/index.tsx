@@ -224,8 +224,8 @@ function StackComment() {
           .
         </p>
         <p className='text-sky-700 dark:text-sky-400'>
-          Review only this PR’s changes <span className='text-neutral-500'>·</span> Rebase the stack{' '}
-          <span className='text-neutral-500'>(author only)</span>
+          Review only this PR&apos;s changes <span className='text-neutral-500'>·</span> Rebase the
+          stack <span className='text-neutral-500'>(author only)</span>
         </p>
         <ul className='flex flex-col'>
           {STACK.map(pr => (
@@ -284,9 +284,9 @@ function ReviewSection() {
   return (
     <Section tinted>
       <SectionHeading title='Review one step at a time.'>
-        A PR from a fork can only target <code className='font-mono'>main</code>, so GitHub’s diff
-        of each PR also holds every PR below it. forkstack links each PR to a diff of only its own
-        changes.
+        A PR from a fork can only target <code className='font-mono'>main</code>, so GitHub&apos;s
+        diff of each PR also holds every PR below it. forkstack links each PR to a diff of only its
+        own changes.
       </SectionHeading>
 
       <div className='grid gap-6 md:grid-cols-2'>

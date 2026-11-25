@@ -36,11 +36,11 @@ export function describeStack(
     }
     case 'ambiguous': {
       return problem(
-        `Can’t find #${number(status.prId)}’s own commits. Rebase it by hand, then rebase the stack.`
+        `Can't find #${number(status.prId)}'s own commits. Rebase it by hand, then rebase the stack.`
       )
     }
     default: {
-      return problem('The last rebase failed. Open “Rebase the stack” to see why.')
+      return problem('The last rebase failed. Open "Rebase the stack" to see why.')
     }
   }
 }
