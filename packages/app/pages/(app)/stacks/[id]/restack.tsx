@@ -1,17 +1,20 @@
 import type { PullRequest } from '@forkstack/core/discovery'
 import { Form, Link, useForm, useRouter } from '@void/react'
-import { useEffect } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import type { ReactNode } from 'react'
+import { connectLiveStream } from 'void/live/client'
 
 import { PendingIcon, PrList, PrRow, StackRepo } from '../../../../src/components/stack.tsx'
-import type { RestackStatus } from '../../../../src/restack-job.ts'
+import { RESTACK_TIMEOUT_MS } from '../../../../src/restack-status.ts'
+import type { RestackStatus } from '../../../../src/restack-status.ts'
 import type { Props } from './restack.server.ts'
 
-// A restack takes seconds to a minute, so the page checks back on this interval while one runs.
-const POLL_MS = 3000
+export default function RestackPage(props: Props) {
+  return <StackRebase key={props.stackId} {...props} />
+}
 
-export default function RestackPage({ stackId, prs, status, running, installUrl }: Props) {
-  usePolling(running)
+function StackRebase({ stackId, prs, status: saved, expiredAt, installUrl }: Props) {
+  const { status, running } = useRestackStatus(stackId, saved, expiredAt, prs.length)
 
   return (
     <div className='flex flex-col gap-6'>
@@ -28,14 +31,16 @@ export default function RestackPage({ stackId, prs, status, running, installUrl 
         </p>
       </header>
 
-      {status && <StatusNotice status={status} prs={prs} installUrl={installUrl} />}
+      {status && (
+        <StatusNotice status={status} running={running} prs={prs} installUrl={installUrl} />
+      )}
 
       <article className='card overflow-hidden'>
         <header className='card-header'>{prs[0] && <StackRepo pr={prs[0]} />}</header>
         <div className='p-2'>
           <PrList baseRef={prs[0]?.baseRef ?? ''}>
             {prs.toReversed().map(pr => (
-              <PrRow key={pr.id} pr={pr} faded={running} />
+              <PrRow key={pr.id} pr={pr} />
             ))}
           </PrList>
         </div>
@@ -97,26 +102,88 @@ function RestackButton({
   )
 }
 
-function usePolling(active: boolean) {
+function useRestackStatus(
+  stackId: string,
+  saved: RestackStatus | null,
+  expiredAt: string | null,
+  prCount: number
+) {
   const router = useRouter()
+  const [latest, setLatest] = useState<RestackStatus | null>(null)
+  const [timedOut, setTimedOut] = useState(expiredAt)
+  const status = latest && (!saved || latest.at >= saved.at) ? latest : saved
+
+  const receive = useEffectEvent((data: RestackStatus) => {
+    setLatest(previous => (previous && previous.at >= data.at ? previous : data))
+    if (
+      data.state === 'done' &&
+      (!status || data.at > status.at) &&
+      (data.updated > 0 || data.merged.length > 0) &&
+      prCount - data.merged.length >= 2
+    ) {
+      void router.refresh()
+    }
+  })
 
   useEffect(() => {
-    const timer = active
-      ? setInterval(() => {
+    const stream = connectLiveStream(
+      new URL(`/stacks/${encodeURIComponent(stackId)}/live`, globalThis.location.origin)
+    )
+    let closed = false
+    let retry: ReturnType<typeof setTimeout>
+    async function subscribe() {
+      try {
+        await stream.subscribe<RestackStatus>({
+          id: 'restack',
+          topic: stackId,
+          onEvent: ({ data }) => receive(data)
+        })
+      } catch {
+        // Void reconnects established streams. Retry an initial connection that failed to open.
+        if (!closed) {
+          retry = setTimeout(() => void subscribe(), 3000)
+        }
+      }
+    }
+    void subscribe()
+    return () => {
+      closed = true
+      clearTimeout(retry)
+      stream.close()
+    }
+  }, [stackId])
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
+    if (status?.state === 'running' && status.at !== expiredAt && status.at !== timedOut) {
+      // Recheck the saved result once if the worker never reported back to this tab.
+      const remaining = Date.parse(status.at) + RESTACK_TIMEOUT_MS - Date.now()
+      timer = setTimeout(
+        () => {
+          setTimedOut(status.at)
           void router.refresh()
-        }, POLL_MS)
-      : undefined
-    return () => clearInterval(timer)
-  }, [active, router])
+        },
+        Math.max(remaining, 0)
+      )
+    }
+    return () => clearTimeout(timer)
+  }, [router, status?.state, status?.at, expiredAt, timedOut])
+
+  return {
+    status,
+    running: status?.state === 'running' && status.at !== timedOut && status.at !== expiredAt
+  }
 }
 
 // Every outcome says what happened on GitHub and what the user can do next.
 function StatusNotice({
   status,
+  running,
   prs,
   installUrl
 }: {
   status: RestackStatus
+  running: boolean
   prs: PullRequest[]
   installUrl: string
 }) {
@@ -124,7 +191,17 @@ function StatusNotice({
 
   switch (status.state) {
     case 'running': {
-      return <Notice icon='i-lucide-loader-circle animate-spin'>Rebasing the stack…</Notice>
+      if (!running) {
+        return (
+          <Notice icon='i-lucide-clock'>No result received. You can try the rebase again.</Notice>
+        )
+      }
+      return (
+        <Notice icon='i-lucide-server'>
+          forkstack handles this rebase on the server. You can close this tab and come back here for
+          the result.
+        </Notice>
+      )
     }
     case 'done': {
       return (

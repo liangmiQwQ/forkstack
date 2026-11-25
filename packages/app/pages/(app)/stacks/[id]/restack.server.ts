@@ -9,7 +9,8 @@ import type { PageParams } from 'void/routes'
 import { getGithubToken } from '../../../../src/account.ts'
 import { fetchPrs } from '../../../../src/github.ts'
 import { findOwnStack } from '../../../../src/own-stack.ts'
-import { isRunning, readRestackStatus, startRestack } from '../../../../src/restack-job.ts'
+import { readRestackStatus, startRestack } from '../../../../src/restack-job.ts'
+import { RESTACK_TIMEOUT_MS } from '../../../../src/restack-status.ts'
 
 export type Props = InferProps<typeof loader>
 
@@ -31,7 +32,10 @@ export const loader = defineHandler(async c => {
     stackId: stack.id,
     prs,
     status,
-    running: isRunning(status),
+    expiredAt:
+      status?.state === 'running' && Date.parse(status.at) + RESTACK_TIMEOUT_MS <= Date.now()
+        ? status.at
+        : null,
     installUrl: `https://github.com/apps/${env.GITHUB_APP_SLUG}/installations/new`
   }
 })

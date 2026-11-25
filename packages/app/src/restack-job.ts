@@ -1,52 +1,69 @@
 import type { PullRequest } from '@forkstack/core/discovery'
 import { countMerged } from '@forkstack/core/stack-health'
+import { stackTable } from '@schema'
+import { and, db, eq, sql } from 'void/db'
 import { kv } from 'void/kv'
 import { queues } from 'void/queues'
 
+import { publishStatus } from './restack-live.ts'
+import { RESTACK_TIMEOUT_MS } from './restack-status.ts'
+import type { RestackStatus } from './restack-status.ts'
 import { restack } from './restack.ts'
 import type { RestackResult } from './restack.ts'
 import { unlinkPrs } from './stack-link.ts'
 import { clearStackPrs } from './stack-status.ts'
 import { getStack } from './stack.ts'
 
-type RestackOutcome = RestackResult | { state: 'running' } | { state: 'failed' }
-
-export type RestackStatus = RestackOutcome & {
-  /** ISO timestamp of the last change. */
-  at: string
-}
-
-// Only the latest restack of each stack is shown, and a day is long enough to come back for the result.
-const TTL_SECONDS = 24 * 60 * 60
-
-// A restack whose worker died never reports back, so after this long it no longer blocks a new one.
-const STALE_MS = 15 * 60 * 1000
+// Only the latest result is shown, for one day.
+const STATUS_TTL_MS = 24 * 60 * 60 * 1000
 
 // Long enough that a conflict left to the user isn't retried on every check, short enough that the keys clean themselves up.
 const MERGE_TTL_SECONDS = 30 * 24 * 60 * 60
 
-const statusByStack = kv.map<RestackStatus>('restack-status')
-
 // Keyed by the highest merged PR, since a restack after each merge only runs once by itself.
 const restackedMerges = kv.map<true>('restacked-merge')
 
-export function readRestackStatus(stackId: string): Promise<RestackStatus | null> {
-  return statusByStack.get(stackId)
+export async function readRestackStatus(stackId: string): Promise<RestackStatus | null> {
+  const row = await db
+    .select({ status: stackTable.restackStatus })
+    .from(stackTable)
+    .where(eq(stackTable.id, stackId))
+    .get()
+  const status = row?.status
+  return status && Date.parse(status.at) > Date.now() - STATUS_TTL_MS ? status : null
 }
 
-export function isRunning(status: RestackStatus | null): boolean {
-  return status?.state === 'running' && Date.now() - Date.parse(status.at) < STALE_MS
+// Claim the stack in one D1 write, including when two requests arrive at the same time.
+async function claimRestack(stackId: string) {
+  const status = { state: 'running', at: new Date().toISOString() } as const
+  const cutoff = new Date(Date.now() - RESTACK_TIMEOUT_MS).toISOString()
+  const column = stackTable.restackStatus
+  const rows = await db
+    .update(stackTable)
+    .set({ restackStatus: status })
+    .where(
+      and(
+        eq(stackTable.id, stackId),
+        sql`(json_extract(${column}, '$.state') IS NOT 'running' OR json_extract(${column}, '$.at') <= ${cutoff})`
+      )
+    )
+    .returning({ id: stackTable.id })
+  return rows.length > 0 ? status : null
 }
 
-// The restack runs in a queue, since it can take more GitHub requests and time than one page request allows.
-// Returns `false` when the stack is being restacked already.
 export async function startRestack(stackId: string, onMain: boolean): Promise<boolean> {
-  if (isRunning(await readRestackStatus(stackId))) {
+  const status = await claimRestack(stackId)
+  if (!status) {
     return false
   }
 
-  await saveStatus(stackId, { state: 'running' })
-  await queues.restack.send({ stackId, onMain })
+  try {
+    await queues.restack.send({ stackId, onMain, startedAt: status.at })
+  } catch (error) {
+    await finishRestack(stackId, status.at, { state: 'failed' })
+    throw error
+  }
+  await publishStatus(stackId, status)
   return true
 }
 
@@ -66,13 +83,22 @@ export async function restackIfMerged(stackId: string, prs: PullRequest[]): Prom
   await restackedMerges.put(mergeId, true, { ttl: MERGE_TTL_SECONDS })
 }
 
-export async function runRestack(stackId: string, onMain: boolean): Promise<void> {
-  const stack = await getStack(stackId)
-  if (!stack) {
+export async function runRestack(
+  stackId: string,
+  onMain: boolean,
+  startedAt?: string
+): Promise<void> {
+  // Messages queued before the D1 migration have no claim yet.
+  const claim = startedAt ? await readRestackStatus(stackId) : await claimRestack(stackId)
+  if (claim?.state !== 'running' || (startedAt && claim.at !== startedAt)) {
     return
   }
 
   try {
+    const stack = await getStack(stackId)
+    if (!stack) {
+      return
+    }
     const result = await restack(
       stack.prs.map(pr => pr.id),
       onMain
@@ -81,9 +107,9 @@ export async function runRestack(stackId: string, onMain: boolean): Promise<void
     if (result.state === 'done' && result.merged.length > 0) {
       await unlinkPrs(stack, result.merged)
     }
-    await saveStatus(stackId, result)
+    await finishRestack(stackId, claim.at, result)
   } catch (error) {
-    await saveStatus(stackId, { state: 'failed' })
+    await finishRestack(stackId, claim.at, { state: 'failed' })
     throw error
   } finally {
     // The branches moved, so the rebase button should read GitHub again.
@@ -91,10 +117,27 @@ export async function runRestack(stackId: string, onMain: boolean): Promise<void
   }
 }
 
-async function saveStatus(stackId: string, status: RestackOutcome) {
-  await statusByStack.put(
-    stackId,
-    { ...status, at: new Date().toISOString() },
-    { ttl: TTL_SECONDS }
-  )
+async function finishRestack(
+  stackId: string,
+  startedAt: string,
+  outcome: RestackResult | { state: 'failed' }
+) {
+  const status = { ...outcome, at: new Date().toISOString() }
+  const rows = await db
+    .update(stackTable)
+    .set({ restackStatus: status })
+    .where(
+      and(
+        eq(stackTable.id, stackId),
+        eq(stackTable.restackStatus, { state: 'running', at: startedAt })
+      )
+    )
+    .returning({ id: stackTable.id })
+  // Unlinking a finished stack deletes its row. An open tab can still receive its final outcome.
+  if (
+    rows.length > 0 ||
+    (outcome.state === 'done' && outcome.merged.length > 0 && !(await getStack(stackId)))
+  ) {
+    await publishStatus(stackId, status)
+  }
 }
