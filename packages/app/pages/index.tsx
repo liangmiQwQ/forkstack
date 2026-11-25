@@ -240,7 +240,6 @@ function StackComment() {
             View stack
           </span>
         </p>
-        <p>The stack&apos;s author can rebase it from the stack page.</p>
       </div>
     </div>
   )
