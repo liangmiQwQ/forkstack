@@ -48,6 +48,22 @@ jobs:
         if: github.event_name == 'push'
         run: vp pm publish -r --access public --no-git-checks
 
+  cloudflare:
+    name: Deploy app
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version-file: .node-version
+          cache: true
+          run-install: true
+
       - name: Deploy to Cloudflare
         working-directory: packages/app
         run: pnpm run deploy --platform cloudflare
