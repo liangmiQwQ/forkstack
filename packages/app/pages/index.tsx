@@ -106,7 +106,7 @@ function AccountLink({ signedIn, className }: Props & { className: string }) {
 
 function Hero({ signedIn }: Props) {
   return (
-    <section className='mx-auto grid w-full max-w-6xl flex-1 content-center items-center gap-14 px-6 py-16 lg:grid-cols-[1fr_28rem]'>
+    <section className='mx-auto grid w-full max-w-6xl flex-1 content-center items-center gap-16 px-6 py-16 lg:grid-cols-[1fr_26rem] lg:gap-24'>
       <div className='flex min-w-0 flex-col items-start gap-8'>
         <h1 className='text-5xl font-semibold tracking-[-0.035em] text-balance sm:text-6xl'>
           Stacked pull requests, from your fork.
@@ -121,9 +121,8 @@ function Hero({ signedIn }: Props) {
             <span className='i-lucide-lightbulb' />
             Why forkstack
           </Link>
-          <GitHubButton />
+          <GitHubButton className='btn-ghost px-4 py-2' />
         </div>
-        <InstallCommand />
       </div>
 
       <HeroIllustration />
@@ -131,9 +130,9 @@ function Hero({ signedIn }: Props) {
   )
 }
 
-function GitHubButton() {
+function GitHubButton({ className }: { className: string }) {
   return (
-    <a href={REPO_URL} className='btn-outline px-4 py-2'>
+    <a href={REPO_URL} className={className}>
       <span className='i-simple-icons-github' />
       View on GitHub
     </a>
@@ -202,7 +201,7 @@ function ForkBranches() {
   )
 }
 
-// Mirrors the comment from `renderComment` in core, as GitHub shows it on the middle PR.
+// A trimmed version of the comment from `renderComment` in core, as GitHub shows it on the middle PR.
 function StackComment() {
   const current = STACK[1]
 
@@ -218,24 +217,16 @@ function StackComment() {
       </div>
 
       <div className='flex flex-col gap-3 p-4'>
-        <p className='flex items-center gap-2 font-medium text-amber-700 dark:text-amber-400'>
-          <span className='i-octicon-alert-16' />
-          Warning
-        </p>
-        <p>
-          This PR is in a stack (2 of 3). Learn more about{' '}
-          <span className='text-sky-700 dark:text-sky-400'>stacked PRs created with forkstack</span>
-          .
-        </p>
-        <p className='text-sky-700 dark:text-sky-400'>
-          Review only this PR’s changes <span className='text-neutral-500'>·</span> Rebase the stack{' '}
-          <span className='text-neutral-500'>(author only)</span>
-        </p>
+        <p className='text-neutral-500'>This PR is in a stack (2 of 3).</p>
         <ul className='flex flex-col'>
           {STACK.map(pr => (
             <StatusRow key={pr.number} pr={pr} selected={pr === current} />
           ))}
         </ul>
+        <p className='flex items-center gap-1.5 text-sky-700 dark:text-sky-400'>
+          <span className='i-octicon-file-diff-16' />
+          Review only this PR’s changes
+        </p>
       </div>
     </div>
   )
@@ -391,6 +382,7 @@ function ContributorSection() {
             A stack is just branches built on top of each other. One command pushes them, opens the
             PRs and links them.
           </SectionHeading>
+          <InstallCommand />
           <Link href='/docs/contributing' className='btn-outline px-4 py-2'>
             <span className='i-lucide-book-open' />
             Read the contributing guide
@@ -428,7 +420,7 @@ function ClosingSection({ signedIn }: Props) {
       </p>
       <div className='flex flex-wrap justify-center gap-3'>
         <AccountLink signedIn={signedIn} className='btn-solid px-4 py-2' />
-        <GitHubButton />
+        <GitHubButton className='btn-outline px-4 py-2' />
       </div>
     </section>
   )
