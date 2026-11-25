@@ -30,6 +30,18 @@ forkstack keeps the last approach, where every PR targets `main`, and fixes what
 - **Merges don't need cleanup.** After the bottom PR merges, forkstack rebases the rest of the stack onto `main`, so the next PR is ready to merge.
 - **Contributors keep using git.** The stack is just branches built on top of each other. `forkstack submit` pushes them, opens the PRs and links them.
 
+## Why not just let your agent restack everything?
+
+Sure, an agent can rebase your branches and force-push them once. But keeping a stack in shape until the last PR merges takes more than that.
+
+Merges don't wait for your agent. Each time the bottom PR merges, the rest of the stack needs a rebase, and an agent only acts when you ask, so you end up watching upstream and prompting it after every merge. forkstack restacks on GitHub as soon as the merge lands, even when your machine is off.
+
+Without a CLI, the agent also works out the rebase and push commands from scratch on each run, and one wrong `--onto` or force-push can drop commits. `forkstack submit` and `forkstack sync` run the same steps every time, so the agent only has to call them.
+
+Rebasing only fixes your side, too. Upstream still sees PRs that all target `main`, with nothing telling reviewers the order, and each diff full of changes from the PRs below it. forkstack shows the stack on every PR and gives each PR a diff of its own changes.
+
+Agents still have a part to play, and forkstack gives them the context they need. The comment on each PR holds a hidden note for AI agents: a reviewing agent learns which commits belong to that PR, and a coding agent learns which branch each change goes to. The [forkstack skill](https://github.com/liangmiQwQ/forkstack/blob/main/skills/forkstack/SKILL.md) tells your own agent when to split work into a stack, how to build one and which command to run.
+
 ## Nothing to install upstream
 
 forkstack doesn't need write access or any setup in the upstream repository. Maintainers review and merge as they always do, with any merge method. Only the contributor sets it up, on their own fork.
