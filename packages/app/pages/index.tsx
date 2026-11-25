@@ -106,7 +106,7 @@ function AccountLink({ signedIn, className }: Props & { className: string }) {
 
 function Hero({ signedIn }: Props) {
   return (
-    <section className='mx-auto grid w-full max-w-6xl flex-1 content-center items-center gap-16 px-6 py-16 lg:grid-cols-[1fr_26rem] lg:gap-24'>
+    <section className='mx-auto grid w-full max-w-6xl flex-1 content-center items-center gap-16 px-6 py-16 lg:grid-cols-[1fr_28rem]'>
       <div className='flex min-w-0 flex-col items-start gap-8'>
         <h1 className='text-5xl font-semibold tracking-[-0.035em] text-balance sm:text-6xl'>
           Stacked pull requests, from your fork.
@@ -201,7 +201,7 @@ function ForkBranches() {
   )
 }
 
-// A trimmed version of the comment from `renderComment` in core, as GitHub shows it on the middle PR.
+// Mirrors the comment from `renderComment` in core, as GitHub shows it on the middle PR.
 function StackComment() {
   const current = STACK[1]
 
@@ -210,23 +210,28 @@ function StackComment() {
       <div className='flex items-center gap-2 border-b border-neutral-500/15 bg-neutral-500/5 px-4 py-2.5'>
         <span className='i-lucide-layers' />
         <span className='font-semibold'>forkstack-service</span>
-        <span className='rounded-full border border-neutral-500/25 px-1.5 text-xs text-neutral-500'>
-          bot
-        </span>
         <span className='ml-auto font-mono text-xs text-neutral-500'>#{current.number}</span>
       </div>
 
       <div className='flex flex-col gap-3 p-4'>
-        <p className='text-neutral-500'>This PR is in a stack (2 of 3).</p>
+        <p className='flex items-center gap-2 font-medium text-amber-700 dark:text-amber-400'>
+          <span className='i-octicon-alert-16' />
+          Warning
+        </p>
+        <p>
+          This PR is in a stack (2 of 3). Learn more about{' '}
+          <span className='text-sky-700 dark:text-sky-400'>stacked PRs created with forkstack</span>
+          .
+        </p>
+        <p className='text-sky-700 dark:text-sky-400'>
+          Review only this PR’s changes <span className='text-neutral-500'>·</span> Rebase the stack{' '}
+          <span className='text-neutral-500'>(author only)</span>
+        </p>
         <ul className='flex flex-col'>
           {STACK.map(pr => (
             <StatusRow key={pr.number} pr={pr} selected={pr === current} />
           ))}
         </ul>
-        <p className='flex items-center gap-1.5 text-sky-700 dark:text-sky-400'>
-          <span className='i-octicon-file-diff-16' />
-          Review only this PR’s changes
-        </p>
       </div>
     </div>
   )
