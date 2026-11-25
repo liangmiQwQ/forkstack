@@ -1,5 +1,6 @@
-import { userTable } from '@auth-schema'
 import { index, integer, sqliteTable, text } from 'void/schema-d1'
+
+import { userTable } from '../.void/better-auth-schema.ts'
 
 // The database is the source of truth for stacks. PRs only carry the stack ID as a marker in a bot comment.
 export const stackTable = sqliteTable(
