@@ -14,7 +14,8 @@ export function renderComment(stackId: string, stack: PullRequest[], index: numb
   const body = [
     `This PR is in a stack (${index + 1} of ${stack.length}). Learn more about [stacked PRs created with forkstack](${STACK_DOCS_URL}).`,
     renderList(stack, index),
-    `${renderReviewButton(pr.id)} ${renderStackButton(stackId)}`
+    `${renderReviewButton(pr.id)} ${renderStackButton(stackId)}`,
+    "The stack's author can rebase it from the stack page."
   ].join('\n\n')
 
   const warning = `> [!WARNING]\n> ${body.replaceAll('\n', '\n> ')}`

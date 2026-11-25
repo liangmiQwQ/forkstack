@@ -4,7 +4,7 @@ import { PrList, PrRow, StackRepo } from '../../../../src/components/stack.tsx'
 import type { StackNotice } from '../../../../src/stack-notice.ts'
 import type { Props } from './index.server.ts'
 
-export default function StackPage({ stackId, prs, notice, canRebase }: Props) {
+export default function StackPage({ stackId, prs, notice, canRebase, signedIn }: Props) {
   return (
     <div className='flex flex-col gap-6'>
       <header className='flex flex-col gap-3'>
@@ -18,7 +18,7 @@ export default function StackPage({ stackId, prs, notice, canRebase }: Props) {
       <article className='card overflow-hidden'>
         <header className='card-header'>
           {prs[0] && <StackRepo pr={prs[0]} />}
-          <StackState stackId={stackId} notice={notice} canRebase={canRebase} />
+          <StackState stackId={stackId} notice={notice} canRebase={canRebase} signedIn={signedIn} />
         </header>
         <div className='p-2'>
           <PrList baseRef={prs[0]?.baseRef ?? ''}>
@@ -44,28 +44,45 @@ export default function StackPage({ stackId, prs, notice, canRebase }: Props) {
 function StackState({
   stackId,
   notice,
-  canRebase
+  canRebase,
+  signedIn
 }: {
   stackId: string
   notice: StackNotice
   canRebase: boolean
+  signedIn: boolean
 }) {
   const color = notice.kind === 'problem' ? 'text-amber-600 dark:text-amber-400' : ''
+  const needsOwner = notice.kind === 'idle' || notice.kind === 'problem'
 
-  if (!canRebase || notice.kind === 'current') {
+  if (canRebase && notice.kind !== 'current') {
     return (
-      <span className={`flex items-center gap-2 text-sm ${color}`}>
+      <Link href={`/stacks/${stackId}/restack`} className={`btn-outline ${color}`}>
         <span className={NOTICE_ICONS[notice.kind]} />
-        {/* The idle label names the owner's action, which reads as an instruction to anyone else. */}
-        {notice.kind === 'idle' && !canRebase ? 'Needs a rebase' : notice.label}
-      </span>
+        {notice.label}
+      </Link>
     )
   }
-  return (
-    <Link href={`/stacks/${stackId}/restack`} className={`btn-outline ${color}`}>
+
+  const state = (
+    <span className={`flex items-center gap-2 text-sm ${color}`}>
       <span className={NOTICE_ICONS[notice.kind]} />
-      {notice.label}
-    </Link>
+      {/* The idle label names the owner's action, which reads as an instruction to anyone else. */}
+      {notice.kind === 'idle' && !canRebase ? 'Needs a rebase' : notice.label}
+    </span>
+  )
+  if (signedIn || !needsOwner) {
+    return state
+  }
+  // Authors mostly arrive from the PR comment, often signed out, so they need a way back to the rebase controls.
+  return (
+    <span className='flex items-center gap-3'>
+      {state}
+      <Link href={`/login?next=${encodeURIComponent(`/stacks/${stackId}`)}`} className='btn-ghost'>
+        <span className='i-octicon-sign-in-16' />
+        Sign in to rebase
+      </Link>
+    </span>
   )
 }
 

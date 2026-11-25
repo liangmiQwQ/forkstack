@@ -4,15 +4,15 @@ import { auth } from 'void/client'
 
 import type { Props } from './login.server.ts'
 
-export default function LoginPage({ error }: Props) {
+export default function LoginPage({ error, next }: Props) {
   const [pending, setPending] = useState(false)
 
   function signIn() {
     setPending(true)
     void auth.signIn.social({
       provider: 'github',
-      callbackURL: '/dashboard',
-      errorCallbackURL: '/login'
+      callbackURL: next,
+      errorCallbackURL: `/login?next=${encodeURIComponent(next)}`
     })
   }
 

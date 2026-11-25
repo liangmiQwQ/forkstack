@@ -27,11 +27,13 @@ export const loader = defineHandler(async c => {
     readRestackStatus(stackId)
   ])
 
+  const user = getUser()
   return {
     stackId,
     prs: prs.map(pr => ({ ...pr, reviewUrl: findReviewUrl(prs, pr.id) })),
     notice: describeStack(prs, options, status),
-    canRebase: getUser()?.id === stack.userId
+    canRebase: user?.id === stack.userId,
+    signedIn: Boolean(user)
   }
 })
 
