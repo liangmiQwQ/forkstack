@@ -90,6 +90,10 @@ function StackCard({ stack, cachedPrs, freshPrs }: StackSources & { stack: Saved
         )}
         <div className='flex items-center gap-3'>
           <span className='text-xs text-neutral-500'>{prs.length} pull requests</span>
+          <Link href={`/stacks/${stack.id}`} className='btn-ghost'>
+            <span className='i-lucide-panel-top-open' />
+            View
+          </Link>
           <UnlinkButton stackId={stack.id} />
         </div>
       </header>

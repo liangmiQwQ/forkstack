@@ -1,6 +1,6 @@
 import { expect, it } from 'vite-plus/test'
 
-import { planLayers } from '../src/restack-plan.ts'
+import { planLayers, rebaseTargets } from '../src/restack-plan.ts'
 import type { LayerState } from '../src/restack-plan.ts'
 
 // A linear branch: `chain[0]` is the commit it starts from, which is not on the branch itself.
@@ -46,4 +46,23 @@ it('plans only the open layers after the bottom was squash-merged, without the m
   )
 
   expect(plans).toMatchObject([{ prId: '2', baseOid: '1b', commits: ['2a'] }])
+})
+
+it.each([
+  { main: 'base', parent: 'a', merged: 0, onMain: false, layersOnly: false },
+  { main: 'new-base', parent: 'a', merged: 0, onMain: true, layersOnly: false },
+  { main: 'base', parent: 'old-a', merged: 0, onMain: true, layersOnly: true },
+  { main: 'squashed-a', parent: 'a', merged: 1, onMain: true, layersOnly: true }
+])('checks both rebase targets against $main and parent $parent (merged: $merged)', scenario => {
+  const plans = planLayers(
+    [layer('1', ['base', 'a'], ['old-a']), layer('2', ['base', scenario.parent, 'b'])],
+    scenario.merged
+  )
+  if ('ambiguous' in plans) {
+    throw new Error('Expected a linear stack')
+  }
+  expect(rebaseTargets(plans, scenario.main, scenario.merged)).toEqual({
+    onMain: scenario.onMain,
+    layersOnly: scenario.layersOnly
+  })
 })

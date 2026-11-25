@@ -4,7 +4,7 @@ import { defineHandler } from 'void'
 import { env } from 'void/env'
 
 import { findPrIdsByHead } from '../../src/github.ts'
-import { clearStackPrs } from '../../src/stack-status.ts'
+import { clearStackStatus } from '../../src/stack-status.ts'
 import { findStackId } from '../../src/stack.ts'
 
 const PUSH_EVENT = v.object({
@@ -34,7 +34,7 @@ async function handlePush(event: v.InferOutput<typeof PUSH_EVENT>) {
 
   for (const stackId of new Set(stackIds)) {
     if (stackId) {
-      await clearStackPrs(stackId)
+      await clearStackStatus(stackId)
     }
   }
 }
