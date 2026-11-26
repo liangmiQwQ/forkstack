@@ -1,6 +1,6 @@
 {
   "name": "forkstack",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Manage stacked pull requests across GitHub forks.",
   "homepage": "https://github.com/liangmiQwQ/forkstack#readme",
   "bugs": {
