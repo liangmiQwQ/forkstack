@@ -47,15 +47,16 @@ function renderReviewButton(prId: string) {
 }
 
 // GitHub picks the `<source>` that matches the reader's theme, and the alt text keeps the link usable if the image fails to load.
+// Kept on one line: a line break inside `<a>` renders as an underlined gap, and a tag alone on its line starts a raw HTML block without paragraph spacing.
 function renderButton(href: string, src: string, alt: string) {
   return [
     `<a href="${href}">`,
     '<picture>',
-    `  <source media="(prefers-color-scheme: dark)" srcset="${src}?theme=dark">`,
-    `  <img src="${src}" alt="${alt}">`,
+    `<source media="(prefers-color-scheme: dark)" srcset="${src}?theme=dark">`,
+    `<img src="${src}" alt="${alt}">`,
     '</picture>',
     '</a>'
-  ].join('\n')
+  ].join('')
 }
 
 // Hidden from readers, but agents that review or work on the PR read comments in the raw markdown.
