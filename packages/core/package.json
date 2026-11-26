@@ -1,6 +1,6 @@
 {
   "name": "@forkstack/core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Stack logic shared by the forkstack app and CLI.",
   "license": "MIT",
