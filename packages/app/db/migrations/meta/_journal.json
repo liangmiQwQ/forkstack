@@ -15,6 +15,13 @@
       "when": 1795698379200,
       "tag": "20261126130619_lonely_matthew_murdock",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795700365991,
+      "tag": "20261126133925_pale_glorian",
+      "breakpoints": true
     }
   ]
 }

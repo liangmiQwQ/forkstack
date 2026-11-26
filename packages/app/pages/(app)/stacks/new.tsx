@@ -143,7 +143,7 @@ function CandidateRow({
       aria-busy={form.pending}
     >
       <div className='flex min-w-0 flex-1 flex-col gap-2'>
-        <StackRepo pr={candidate.prs[0]} />
+        <StackRepo repo={candidate.prs[0]} />
         {/* Top PR first, like GitHub's stack view. */}
         <ol className='flex flex-col gap-1 text-sm'>
           {candidate.prs.toReversed().map(pr => (

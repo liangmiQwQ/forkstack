@@ -11,6 +11,10 @@ export const stackTable = sqliteTable(
     userId: text('userId')
       .notNull()
       .references(() => userTable.id, { onDelete: 'cascade' }),
+    // The repository the stack merges into and the fork its branches live in, so pages can name the stack before GitHub answers.
+    // `null` for stacks saved before these columns, until their page is viewed.
+    baseRepo: text('baseRepo'),
+    headRepo: text('headRepo'),
     restackStatus: text('restackStatus', { mode: 'json' }).$type<RestackStatus>(),
     createdAt: integer('createdAt', { mode: 'timestamp_ms' })
       .notNull()

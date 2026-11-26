@@ -1,3 +1,4 @@
+import type { PullRequest } from '@forkstack/core/discovery'
 import { stackPrTable, stackTable } from '@schema'
 import { asc, db, eq, inArray } from 'void/db'
 import type { SQL } from 'void/db'
@@ -8,7 +9,12 @@ export interface StoredStack {
   userId: string
   /** The stack's PRs, bottom to top. */
   prs: StoredPr[]
+  /** `null` for stacks saved before forkstack stored their repository. */
+  repo: RepoPair | null
 }
+
+/** All PRs in a stack share one base repository and one fork. */
+export type RepoPair = Pick<PullRequest, 'baseRepo' | 'headRepo'>
 
 export interface StoredPr {
   /** GitHub's GraphQL node ID. */
@@ -34,15 +40,19 @@ export async function findStackId(prId: string): Promise<string | null> {
 }
 
 // D1 has no interactive transactions, so the inserts go in one batch to keep a stack from being saved without its PRs.
-export async function createStack(userId: string, prIds: string[]): Promise<string> {
+export async function createStack(userId: string, prs: PullRequest[]): Promise<string> {
   const id = crypto.randomUUID()
-  const prs = prIds.map((prId, position) => ({ prId, stackId: id, position }))
+  const rows = prs.map((pr, position) => ({ prId: pr.id, stackId: id, position }))
 
   await db.batch([
-    db.insert(stackTable).values({ id, userId }),
-    db.insert(stackPrTable).values(prs)
+    db.insert(stackTable).values({ id, userId, ...pickRepo(prs[0]) }),
+    db.insert(stackPrTable).values(rows)
   ])
   return id
+}
+
+export async function saveRepo(id: string, repo: RepoPair): Promise<void> {
+  await db.update(stackTable).set(pickRepo(repo)).where(eq(stackTable.id, id))
 }
 
 export async function deleteStack(id: string): Promise<void> {
@@ -62,6 +72,8 @@ async function queryStacks(where: SQL): Promise<StoredStack[]> {
     .select({
       stackId: stackTable.id,
       userId: stackTable.userId,
+      baseRepo: stackTable.baseRepo,
+      headRepo: stackTable.headRepo,
       prId: stackPrTable.prId,
       commentId: stackPrTable.commentId
     })
@@ -72,10 +84,20 @@ async function queryStacks(where: SQL): Promise<StoredStack[]> {
 
   const stacks = new Map<string, StoredStack>()
   for (const row of rows) {
-    const stack = stacks.get(row.stackId) ?? { id: row.stackId, userId: row.userId, prs: [] }
+    const stack = stacks.get(row.stackId) ?? {
+      id: row.stackId,
+      userId: row.userId,
+      prs: [],
+      repo: row.baseRepo ? { baseRepo: row.baseRepo, headRepo: row.headRepo } : null
+    }
     stack.prs.push({ id: row.prId, commentId: row.commentId })
     stacks.set(row.stackId, stack)
   }
 
   return [...stacks.values()]
+}
+
+// Picks only the repository fields, since a whole PR would also carry fields the table does not have.
+function pickRepo(repo: RepoPair | undefined): Partial<RepoPair> {
+  return { baseRepo: repo?.baseRepo, headRepo: repo?.headRepo }
 }

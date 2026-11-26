@@ -25,7 +25,7 @@ export async function linkStack(
   }
 
   // The database is saved first, since it is the source of truth, then the markers go on GitHub.
-  const id = await createStack(userId, prIds)
+  const id = await createStack(userId, stack)
   await markPrs(stack, id)
   // The dashboard renders the new stack from the cache before GitHub answers.
   await addCachedSavedPrs(userId, stack)

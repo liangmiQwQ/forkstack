@@ -1,74 +1,204 @@
-import { Link } from '@void/react'
+import { Link, useRouter } from '@void/react'
+import { Suspense, use } from 'react'
 import type { ReactNode } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 
-import { PrList, PrRow, StackRepo } from '../../../../src/components/stack.tsx'
+import {
+  PrList,
+  PrListSkeleton,
+  PrRow,
+  Skeleton,
+  StackRepo
+} from '../../../../src/components/stack.tsx'
 import type { StackNotice } from '../../../../src/stack-notice.ts'
+import type { RepoPair } from '../../../../src/stack.ts'
 import type { Props } from './index.server.ts'
 
-export default function StackPage({ stackId, prs, notice, owner, canRebase, signedIn }: Props) {
+type GitHubData = Awaited<Props['github']>
+type StackPr = GitHubData['prs'][number]
+type ViewProps = Omit<Props, 'github'>
+
+// A refresh brings a new `github` promise, which resets the error boundary.
+export default function StackPage({ github, ...props }: Props) {
+  return (
+    // oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop, react-perf/jsx-no-new-array-as-prop -- ErrorBoundary takes these as props, and the React Compiler memoizes them.
+    <ErrorBoundary resetKeys={[github]} fallback={<StackError {...props} />}>
+      {/* oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- Suspense takes its fallback as a prop, and the React Compiler memoizes it. */}
+      <Suspense fallback={<StackView {...props} />}>
+        <LoadedStackView {...props} github={github} />
+      </Suspense>
+    </ErrorBoundary>
+  )
+}
+
+function LoadedStackView({ github, ...props }: Props) {
+  return <StackView {...props} github={use(github)} />
+}
+
+// The database rows render right away, and the parts that read GitHub show skeletons until `github` arrives.
+function StackView({
+  stackId,
+  repo,
+  prCount,
+  owner,
+  canRebase,
+  signedIn,
+  github
+}: ViewProps & { github?: GitHubData }) {
+  const prs = github?.prs
+  const baseRef = prs?.[0]?.baseRef
+
   return (
     <div className='flex flex-col gap-6'>
-      <header className='flex flex-col gap-3'>
-        {signedIn && (
-          <Link href='/dashboard' className='nav-link -ml-2.5 self-start'>
-            <span className='i-lucide-arrow-left' />
-            Stacks
-          </Link>
+      {/* Stacks saved before forkstack stored their repository take it from GitHub. */}
+      <StackHeader signedIn={signedIn} repo={repo ?? prs?.[0]} loading={!github}>
+        {github ? (
+          <StackState
+            stackId={stackId}
+            notice={github.notice}
+            canRebase={canRebase}
+            signedIn={signedIn}
+          />
+        ) : (
+          <Skeleton className='h-8 w-36' />
         )}
-        <div className='flex flex-wrap items-end justify-between gap-4'>
-          <div className='flex min-w-0 flex-col gap-1'>
-            <h1 className='text-2xl font-semibold'>Stack</h1>
-            {prs[0] && <StackRepo pr={prs[0]} />}
-          </div>
-          <StackState stackId={stackId} notice={notice} canRebase={canRebase} signedIn={signedIn} />
-        </div>
-      </header>
+      </StackHeader>
 
-      <StackSummary prs={prs} owner={owner} />
+      <StackSummary prCount={prCount} prs={prs} owner={owner} />
 
       <article className='card overflow-hidden'>
         <header className='card-header'>
           <span className='flex items-center gap-2 text-sm font-medium'>
             <span className='i-octicon-git-pull-request-16 text-neutral-500' />
-            {prs.length} pull requests
+            {prs?.length ?? prCount} pull requests
           </span>
-          {prs[0] && (
+          {baseRef && (
             <span className='text-xs text-neutral-500'>
-              Merges bottom up into <span className='font-mono'>{prs[0].baseRef}</span>
+              Merges bottom up into <span className='font-mono'>{baseRef}</span>
             </span>
           )}
         </header>
         <div className='p-2'>
-          <PrList baseRef={prs[0]?.baseRef ?? ''}>
-            {prs.toReversed().map(pr => (
-              <PrRow key={pr.id} pr={pr}>
-                {pr.reviewUrl && (
-                  <a href={pr.reviewUrl} target='_blank' rel='noreferrer' className='btn-ghost'>
-                    <span className='i-octicon-file-diff-16' />
-                    Review diff
-                  </a>
-                )}
-              </PrRow>
-            ))}
-          </PrList>
+          {prs ? <StackPrList prs={prs} /> : <PrListSkeleton size={prCount} />}
         </div>
       </article>
     </div>
   )
 }
 
+// The saved repository stays on screen, so the visitor still knows which stack failed to load.
+function StackError({ repo, signedIn }: ViewProps) {
+  const router = useRouter()
+
+  return (
+    <div className='flex flex-col gap-6'>
+      <StackHeader signedIn={signedIn} repo={repo} loading={false} />
+      <section
+        className='card flex flex-col items-center gap-3 px-6 py-16 text-center'
+        role='alert'
+      >
+        <span className='i-lucide-cloud-off text-3xl text-neutral-500' />
+        <h2 className='font-medium'>Couldn&apos;t load the pull requests</h2>
+        <p className='max-w-sm text-sm text-neutral-500'>
+          GitHub didn&apos;t answer, or the stack was unlinked while the page loaded. Nothing on the
+          pull requests changed.
+        </p>
+        <button type='button' className='btn-outline mt-2' onClick={() => void router.refresh()}>
+          <span className='i-lucide-refresh-cw' />
+          Try again
+        </button>
+      </section>
+    </div>
+  )
+}
+
+/** `children` go on the right, such as the stack's rebase state. */
+function StackHeader({
+  signedIn,
+  repo,
+  loading,
+  children
+}: {
+  signedIn: boolean
+  repo: RepoPair | null | undefined
+  loading: boolean
+  children?: ReactNode
+}) {
+  return (
+    <header className='flex flex-col gap-3'>
+      {signedIn && (
+        <Link href='/dashboard' className='nav-link -ml-2.5 self-start'>
+          <span className='i-lucide-arrow-left' />
+          Stacks
+        </Link>
+      )}
+      <div className='flex flex-wrap items-end justify-between gap-4'>
+        <div className='flex min-w-0 flex-col gap-1'>
+          <h1 className='text-2xl font-semibold'>Stack</h1>
+          {repo ? (
+            <StackRepo repo={repo} />
+          ) : (
+            loading && <Skeleton className='h-5 w-72 max-w-full' />
+          )}
+        </div>
+        {children}
+      </div>
+    </header>
+  )
+}
+
+function StackPrList({ prs }: { prs: StackPr[] }) {
+  return (
+    <PrList baseRef={prs[0]?.baseRef ?? ''}>
+      {prs.toReversed().map(pr => (
+        <PrRow key={pr.id} pr={pr}>
+          {pr.reviewUrl && (
+            <a href={pr.reviewUrl} target='_blank' rel='noreferrer' className='btn-ghost'>
+              <span className='i-octicon-file-diff-16' />
+              Review diff
+            </a>
+          )}
+        </PrRow>
+      ))}
+    </PrList>
+  )
+}
+
 // Counts come from the PRs alone, so a visitor from a PR comment sees how far the stack is without opening each one.
-function StackSummary({ prs, owner }: Pick<Props, 'prs' | 'owner'>) {
+function StackSummary({
+  prCount,
+  prs,
+  owner
+}: Pick<ViewProps, 'prCount' | 'owner'> & { prs?: StackPr[] }) {
+  return (
+    <dl className='card grid grid-cols-2 divide-neutral-500/15 sm:grid-cols-4 sm:divide-x'>
+      {prs ? <PrCounts prs={prs} /> : <PrCountsSkeleton prCount={prCount} />}
+      <SummaryItem icon='i-octicon-person-16' label='Linked by'>
+        <span className='flex min-w-0 items-center gap-2'>
+          {owner.image && (
+            <img
+              src={owner.image}
+              alt=''
+              className='size-5 shrink-0 rounded-full border border-neutral-500/20'
+            />
+          )}
+          <span className='truncate'>{owner.name}</span>
+        </span>
+      </SummaryItem>
+    </dl>
+  )
+}
+
+function PrCounts({ prs }: { prs: StackPr[] }) {
   const merged = prs.filter(pr => pr.state === 'MERGED').length
   const open = prs.filter(pr => pr.state === 'OPEN')
   // Drafts are not ready for review, like in `PrRow`.
   const ready = open.filter(pr => !pr.isDraft)
   const approved = ready.filter(pr => pr.reviewDecision === 'APPROVED').length
-  const checks = (result: Props['prs'][number]['checks']) =>
-    open.filter(pr => pr.checks === result).length
+  const checks = (result: StackPr['checks']) => open.filter(pr => pr.checks === result).length
 
   return (
-    <dl className='card grid grid-cols-2 divide-neutral-500/15 sm:grid-cols-4 sm:divide-x'>
+    <>
       <SummaryItem icon='i-octicon-git-merge-16' label='Merged'>
         <span>
           {merged} of {prs.length}
@@ -85,19 +215,29 @@ function StackSummary({ prs, owner }: Pick<Props, 'prs' | 'owner'>) {
           [checks('running'), 'running']
         ]) || 'None'}
       </SummaryItem>
-      <SummaryItem icon='i-octicon-person-16' label='Linked by'>
-        <span className='flex min-w-0 items-center gap-2'>
-          {owner.image && (
-            <img
-              src={owner.image}
-              alt=''
-              className='size-5 shrink-0 rounded-full border border-neutral-500/20'
-            />
-          )}
-          <span className='truncate'>{owner.name}</span>
+    </>
+  )
+}
+
+// Mirrors `PrCounts`, so the summary keeps its height when the PRs arrive.
+function PrCountsSkeleton({ prCount }: { prCount: number }) {
+  return (
+    <>
+      <SummaryItem icon='i-octicon-git-merge-16' label='Merged'>
+        <Skeleton className='h-5 w-16' />
+        <span className='flex h-1.5 gap-0.5' aria-hidden='true'>
+          {Array.from({ length: prCount }, (_, index) => (
+            <span key={index} className='flex-1 rounded-full bg-neutral-500/20' />
+          ))}
         </span>
       </SummaryItem>
-    </dl>
+      <SummaryItem icon='i-octicon-eye-16' label='Approved'>
+        <Skeleton className='h-5 w-16' />
+      </SummaryItem>
+      <SummaryItem icon='i-octicon-checklist-16' label='Checks'>
+        <Skeleton className='h-5 w-24' />
+      </SummaryItem>
+    </>
   )
 }
 
@@ -122,7 +262,7 @@ function SummaryItem({
 }
 
 // One segment per PR, bottom to top, colored like the merged and closed PR icons.
-function MergeBar({ prs }: Pick<Props, 'prs'>) {
+function MergeBar({ prs }: { prs: StackPr[] }) {
   return (
     <span className='flex h-1.5 gap-0.5' aria-hidden='true'>
       {prs.map(pr => (
@@ -133,7 +273,7 @@ function MergeBar({ prs }: Pick<Props, 'prs'>) {
 }
 
 // Open PRs stay gray, so the bar fills up only as the stack lands.
-const STATE_COLORS: Record<Props['prs'][number]['state'], string> = {
+const STATE_COLORS: Record<StackPr['state'], string> = {
   MERGED: 'bg-purple-600 dark:bg-purple-400',
   CLOSED: 'bg-red-600 dark:bg-red-400',
   OPEN: 'bg-neutral-500/20'

@@ -2,13 +2,15 @@ import type { PullRequest } from '@forkstack/core/discovery'
 import { Suspense, use, useState } from 'react'
 import type { ReactNode } from 'react'
 
+import type { RepoPair } from '../stack.ts'
+
 /** The repository a stack merges into, and the fork its branches live in. */
-export function StackRepo({ pr }: { pr: PullRequest }) {
+export function StackRepo({ repo }: { repo: RepoPair }) {
   return (
     <div className='flex min-w-0 flex-wrap items-center gap-x-2 font-mono text-sm'>
-      <span>{pr.baseRepo}</span>
+      <span>{repo.baseRepo}</span>
       <span className='i-lucide-arrow-left text-neutral-500' title='from' />
-      <span className='text-neutral-500'>{pr.headRepo}</span>
+      <span className='text-neutral-500'>{repo.headRepo}</span>
     </div>
   )
 }
@@ -244,4 +246,19 @@ export function PendingIcon({ pending, icon }: { pending: boolean; icon: string 
 
 export function Skeleton({ className }: { className: string }) {
   return <div className={`skeleton ${className}`} />
+}
+
+// Mirrors the layout of a `PrList`, so the page does not jump when PRs arrive.
+export function PrListSkeleton({ size }: { size: number }) {
+  return (
+    <div className='flex flex-col' aria-busy='true' aria-label='Loading pull requests'>
+      {Array.from({ length: size }, (_, index) => (
+        <div key={index} className='flex items-center gap-3 py-1.5 pr-2 pl-8'>
+          <Skeleton className='h-5 w-10' />
+          <Skeleton className='h-5 flex-1' />
+          <Skeleton className='hidden h-4 w-28 sm:block' />
+        </div>
+      ))}
+    </div>
+  )
 }

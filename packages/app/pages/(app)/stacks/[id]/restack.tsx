@@ -40,7 +40,7 @@ function StackRebase({ stackId, prs, status: saved, expiredAt, installUrl, optio
       )}
 
       <article className='card overflow-hidden'>
-        <header className='card-header'>{prs[0] && <StackRepo pr={prs[0]} />}</header>
+        <header className='card-header'>{prs[0] && <StackRepo repo={prs[0]} />}</header>
         <div className='p-2'>
           <PrList baseRef={prs[0]?.baseRef ?? ''}>
             {prs.toReversed().map(pr => (

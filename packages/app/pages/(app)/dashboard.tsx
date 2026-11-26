@@ -6,6 +6,7 @@ import type { ComponentProps, ReactNode } from 'react'
 import {
   PendingIcon,
   PrList,
+  PrListSkeleton,
   PrRow,
   Skeleton,
   StackRepo,
@@ -84,7 +85,7 @@ function StackCard({ stack, cachedPrs, freshPrs }: StackSources & { stack: Saved
     <article className='card overflow-hidden'>
       <header className='card-header'>
         {prs[0] ? (
-          <StackRepo pr={prs[0]} />
+          <StackRepo repo={prs[0]} />
         ) : (
           <span className='text-sm'>Pull requests not found</span>
         )}
@@ -245,19 +246,13 @@ function EmptyState() {
 // Mirrors the layout of a stack card, so the page does not jump when PRs arrive.
 function StackCardSkeleton({ size }: { size: number }) {
   return (
-    <div className='card overflow-hidden' aria-busy='true' aria-label='Loading pull requests'>
+    <div className='card overflow-hidden'>
       <div className='card-header'>
         <Skeleton className='h-5 w-72 max-w-full' />
         <Skeleton className='h-5 w-32' />
       </div>
-      <div className='flex flex-col p-2'>
-        {Array.from({ length: size }, (_, index) => (
-          <div key={index} className='flex items-center gap-3 py-1.5 pr-2 pl-8'>
-            <Skeleton className='h-5 w-10' />
-            <Skeleton className='h-5 flex-1' />
-            <Skeleton className='hidden h-4 w-28 sm:block' />
-          </div>
-        ))}
+      <div className='p-2'>
+        <PrListSkeleton size={size} />
       </div>
     </div>
   )
