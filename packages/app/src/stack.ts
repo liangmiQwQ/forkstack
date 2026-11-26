@@ -9,12 +9,8 @@ export interface StoredStack {
   userId: string
   /** The stack's PRs, bottom to top. */
   prs: StoredPr[]
-  /** `null` for stacks saved before forkstack stored their repository. */
-  repo: RepoPair | null
+  repo: { baseRepo: string; headRepo: string }
 }
-
-/** All PRs in a stack share one base repository and one fork. */
-export type RepoPair = Pick<PullRequest, 'baseRepo' | 'headRepo'>
 
 export interface StoredPr {
   /** GitHub's GraphQL node ID. */
@@ -41,18 +37,21 @@ export async function findStackId(prId: string): Promise<string | null> {
 
 // D1 has no interactive transactions, so the inserts go in one batch to keep a stack from being saved without its PRs.
 export async function createStack(userId: string, prs: PullRequest[]): Promise<string> {
+  const bottom = prs.at(0)
+  if (!bottom?.headRepo) {
+    throw new Error('A stack needs a pull request from a fork.')
+  }
+
   const id = crypto.randomUUID()
   const rows = prs.map((pr, position) => ({ prId: pr.id, stackId: id, position }))
 
   await db.batch([
-    db.insert(stackTable).values({ id, userId, ...pickRepo(prs[0]) }),
+    db
+      .insert(stackTable)
+      .values({ id, userId, baseRepo: bottom.baseRepo, headRepo: bottom.headRepo }),
     db.insert(stackPrTable).values(rows)
   ])
   return id
-}
-
-export async function saveRepo(id: string, repo: RepoPair): Promise<void> {
-  await db.update(stackTable).set(pickRepo(repo)).where(eq(stackTable.id, id))
 }
 
 export async function deleteStack(id: string): Promise<void> {
@@ -88,16 +87,11 @@ async function queryStacks(where: SQL): Promise<StoredStack[]> {
       id: row.stackId,
       userId: row.userId,
       prs: [],
-      repo: row.baseRepo ? { baseRepo: row.baseRepo, headRepo: row.headRepo } : null
+      repo: { baseRepo: row.baseRepo, headRepo: row.headRepo }
     }
     stack.prs.push({ id: row.prId, commentId: row.commentId })
     stacks.set(row.stackId, stack)
   }
 
   return [...stacks.values()]
-}
-
-// Picks only the repository fields, since a whole PR would also carry fields the table does not have.
-function pickRepo(repo: RepoPair | undefined): Partial<RepoPair> {
-  return { baseRepo: repo?.baseRepo, headRepo: repo?.headRepo }
 }

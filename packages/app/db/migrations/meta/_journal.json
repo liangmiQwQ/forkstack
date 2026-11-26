@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1795345917920,
-      "tag": "20261122111157_normal_morph",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1795698379200,
-      "tag": "20261126130619_lonely_matthew_murdock",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1795700365991,
-      "tag": "20261126133925_pale_glorian",
+      "when": 1795701086734,
+      "tag": "20261126135126_initial",
       "breakpoints": true
     }
   ]

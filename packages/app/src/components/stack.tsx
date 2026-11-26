@@ -3,10 +3,8 @@ import { useRouter } from '@void/react'
 import { Suspense, use, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import type { RepoPair } from '../stack.ts'
-
 /** The repository a stack merges into, and the fork its branches live in. */
-export function StackRepo({ repo }: { repo: RepoPair }) {
+export function StackRepo({ repo }: { repo: Pick<PullRequest, 'baseRepo' | 'headRepo'> }) {
   return (
     <div className='flex min-w-0 flex-wrap items-center gap-x-2 font-mono text-sm'>
       <span>{repo.baseRepo}</span>

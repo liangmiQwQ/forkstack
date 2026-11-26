@@ -11,7 +11,6 @@ import {
   PrList,
   PrListSkeleton,
   PrRow,
-  Skeleton,
   StackRepo
 } from '../../../../src/components/stack.tsx'
 import { RESTACK_TIMEOUT_MS } from '../../../../src/restack-status.ts'
@@ -58,8 +57,6 @@ function RebaseView({
 }: ViewProps & { github?: GitHubData }) {
   const prs = github?.prs
   const options = github?.options
-  // Stacks saved before forkstack stored their repository take it from GitHub.
-  const shownRepo = repo ?? prs?.[0]
 
   return (
     <div className='flex flex-col gap-6'>
@@ -75,11 +72,7 @@ function RebaseView({
 
       <article className='card overflow-hidden'>
         <header className='card-header'>
-          {shownRepo ? (
-            <StackRepo repo={shownRepo} />
-          ) : (
-            !github && <Skeleton className='h-5 w-72 max-w-full' />
-          )}
+          <StackRepo repo={repo} />
         </header>
         <div className='p-2'>
           {prs ? (

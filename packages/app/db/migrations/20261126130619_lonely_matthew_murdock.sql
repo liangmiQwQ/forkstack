@@ -1,1 +1,0 @@
-ALTER TABLE `stack` ADD `restackStatus` text;

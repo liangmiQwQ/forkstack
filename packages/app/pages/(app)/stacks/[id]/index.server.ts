@@ -9,7 +9,7 @@ import { readRestackStatus, restackIfMerged } from '../../../../src/restack-job.
 import { syncMarkers } from '../../../../src/stack-markers.ts'
 import { describeStack } from '../../../../src/stack-notice.ts'
 import { fetchRebaseOptions, fetchStackPrs } from '../../../../src/stack-status.ts'
-import { getStack, saveRepo } from '../../../../src/stack.ts'
+import { getStack } from '../../../../src/stack.ts'
 import { getPublicProfile } from '../../../../src/user.ts'
 
 export type Props = InferProps<typeof loader>
@@ -40,9 +40,6 @@ export const loader = defineHandler(async c => {
 
       // Each view reads the PRs anyway, so it checks for a merge the notifications missed for free.
       await restackIfMerged(stackId, prs)
-      if (!stack.repo && prs[0]) {
-        await saveRepo(stackId, prs[0])
-      }
       await syncMarkers(stackId, prs)
       const [options, status] = await Promise.all([
         fetchRebaseOptions(stack),
@@ -58,5 +55,5 @@ export const loader = defineHandler(async c => {
 })
 
 export const head = defineHead<Props>((_c, { repo }) => ({
-  title: repo ? `Stack · ${repo.baseRepo}` : 'Stack'
+  title: `Stack · ${repo.baseRepo}`
 }))

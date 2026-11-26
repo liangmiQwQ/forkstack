@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a0356852-9fe1-495b-b910-c63a7b1defb1",
+  "id": "ad9bd759-3680-4cdc-aad1-cd1884c12290",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "stack_pr": {
@@ -73,6 +73,27 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "baseRepo": {
+          "name": "baseRepo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "headRepo": {
+          "name": "headRepo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "restackStatus": {
+          "name": "restackStatus",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "createdAt": {

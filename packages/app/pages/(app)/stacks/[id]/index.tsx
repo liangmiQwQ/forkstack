@@ -12,7 +12,6 @@ import {
   StackRepo
 } from '../../../../src/components/stack.tsx'
 import type { StackNotice } from '../../../../src/stack-notice.ts'
-import type { RepoPair } from '../../../../src/stack.ts'
 import type { Props } from './index.server.ts'
 
 type GitHubData = Awaited<Props['github']>
@@ -51,8 +50,7 @@ function StackView({
 
   return (
     <div className='flex flex-col gap-6'>
-      {/* Stacks saved before forkstack stored their repository take it from GitHub. */}
-      <StackHeader signedIn={signedIn} repo={repo ?? prs?.[0]} loading={!github}>
+      <StackHeader signedIn={signedIn} repo={repo}>
         {github ? (
           <StackState
             stackId={stackId}
@@ -91,7 +89,7 @@ function StackView({
 function StackError({ repo, signedIn }: ViewProps) {
   return (
     <div className='flex flex-col gap-6'>
-      <StackHeader signedIn={signedIn} repo={repo} loading={false} />
+      <StackHeader signedIn={signedIn} repo={repo} />
       <LoadError />
     </div>
   )
@@ -101,12 +99,10 @@ function StackError({ repo, signedIn }: ViewProps) {
 function StackHeader({
   signedIn,
   repo,
-  loading,
   children
 }: {
   signedIn: boolean
-  repo: RepoPair | null | undefined
-  loading: boolean
+  repo: ViewProps['repo']
   children?: ReactNode
 }) {
   return (
@@ -120,11 +116,7 @@ function StackHeader({
       <div className='flex flex-wrap items-end justify-between gap-4'>
         <div className='flex min-w-0 flex-col gap-1'>
           <h1 className='text-2xl font-semibold'>Stack</h1>
-          {repo ? (
-            <StackRepo repo={repo} />
-          ) : (
-            loading && <Skeleton className='h-5 w-72 max-w-full' />
-          )}
+          <StackRepo repo={repo} />
         </div>
         {children}
       </div>
