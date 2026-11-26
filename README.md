@@ -11,6 +11,12 @@ Create your account at [forkstack.dev/login](https://forkstack.dev/login), then 
 - Contributors: [Contributing with forkstack](https://forkstack.dev/docs/contributing)
 - Reviewers and maintainers: [Getting started](https://forkstack.dev/docs)
 
+If you work with a coding agent, install the [forkstack skill](./skills/forkstack/SKILL.md) so it knows when to split work into a stack and which commands to run:
+
+```sh
+npx skills add liangmiQwQ/forkstack
+```
+
 ## Features
 
 - **Visible order.** Every PR in the stack gets a comment listing the stack bottom to top, with the live state, checks and review of each PR.
