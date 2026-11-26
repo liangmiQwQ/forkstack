@@ -4,6 +4,7 @@ import { Suspense, use, useId, useRef } from 'react'
 import type { ComponentProps, ReactNode } from 'react'
 
 import {
+  ArchivedNotice,
   PendingIcon,
   PrList,
   PrListSkeleton,
@@ -16,8 +17,10 @@ import type { Props } from './dashboard.server.ts'
 
 type SavedStack = Props['saved'][number]
 
+// Archived stacks are left out of the counts and the empty state, since they need nothing from the user.
 export default function DashboardPage({ saved, cachedPrs, prs }: Props) {
-  const prCount = saved.reduce((count, stack) => count + stack.prIds.length, 0)
+  const active = saved.filter(stack => !stack.deletesAt)
+  const prCount = active.reduce((count, stack) => count + stack.prIds.length, 0)
 
   return (
     <div className='flex flex-col gap-8'>
@@ -25,25 +28,26 @@ export default function DashboardPage({ saved, cachedPrs, prs }: Props) {
         <div className='flex flex-col gap-1'>
           <h1 className='text-2xl font-semibold'>Stacks</h1>
           <p className='text-sm text-neutral-500'>
-            {saved.length > 0
-              ? `${saved.length} ${saved.length === 1 ? 'stack' : 'stacks'} · ${prCount} pull requests, linked by a forkstack comment on each one`
+            {active.length > 0
+              ? `${active.length} ${active.length === 1 ? 'stack' : 'stacks'} · ${prCount} pull requests, linked by a forkstack comment on each one`
               : 'Pull requests you link as stacks show up here.'}
           </p>
         </div>
         {saved.length > 0 && (
           <div className='flex items-center gap-4'>
             <SyncStatus data={prs} />
-            <Link href='/stacks/new' className='btn-solid'>
-              <span className='i-lucide-layers-plus' />
-              Link a stack
-            </Link>
+            {active.length > 0 && (
+              <Link href='/stacks/new' className='btn-solid'>
+                <span className='i-lucide-layers-plus' />
+                Link a stack
+              </Link>
+            )}
           </div>
         )}
       </header>
 
-      {saved.length === 0 ? (
-        <EmptyState />
-      ) : (
+      {active.length === 0 && <EmptyState />}
+      {saved.length > 0 && (
         // oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- Suspense takes its fallback as a prop, and the React Compiler memoizes it.
         <Suspense fallback={<StackList saved={saved} cachedPrs={cachedPrs} />}>
           <FreshStackList saved={saved} cachedPrs={cachedPrs} prs={prs} />
@@ -63,10 +67,39 @@ function FreshStackList({ prs, ...props }: Pick<Props, 'saved' | 'cachedPrs' | '
   return <StackList {...props} freshPrs={use(prs)} />
 }
 
-function StackList({ saved, ...sources }: StackSources & { saved: SavedStack[] }) {
+// Stacks whose PRs all merged move to the history, until forkstack deletes them. It starts closed, so it stays out of the way.
+function StackList(props: StackSources & { saved: SavedStack[] }) {
+  const archived = props.saved.filter(stack => stack.deletesAt).length
+
+  return (
+    <>
+      {archived < props.saved.length && <StackCards {...props} archived={false} />}
+      {archived > 0 && (
+        <details className='group'>
+          <summary className='flex cursor-pointer list-none items-center gap-2 text-sm text-neutral-500 hover:text-current [&::-webkit-details-marker]:hidden'>
+            <span className='i-lucide-chevron-right transition-transform group-open:rotate-90' />
+            <span className='i-lucide-history' />
+            History · {archived}
+          </summary>
+          <div className='mt-3'>
+            <StackCards {...props} archived />
+          </div>
+        </details>
+      )}
+    </>
+  )
+}
+
+function StackCards({
+  saved,
+  archived,
+  ...sources
+}: StackSources & { saved: SavedStack[]; archived: boolean }) {
+  const stacks = saved.filter(stack => Boolean(stack.deletesAt) === archived)
+
   return (
     <ul className='flex flex-col gap-4'>
-      {saved.map(stack => (
+      {stacks.map(stack => (
         <li key={stack.id}>
           <StackCard stack={stack} {...sources} />
         </li>
@@ -90,19 +123,27 @@ function StackCard({ stack, cachedPrs, freshPrs }: StackSources & { stack: Saved
           <span className='text-sm'>Pull requests not found</span>
         )}
         <div className='flex items-center gap-3'>
-          <span className='text-xs text-neutral-500'>{prs.length} pull requests</span>
+          {stack.deletesAt ? (
+            <ArchivedNotice deletesAt={stack.deletesAt} />
+          ) : (
+            <span className='text-xs text-neutral-500'>{prs.length} pull requests</span>
+          )}
           <Link href={`/stacks/${stack.id}`} className='btn-ghost'>
             <span className='i-lucide-panel-top-open' />
             View
           </Link>
-          <UnlinkButton stackId={stack.id} />
+          {stack.deletesAt ? (
+            <DeleteButton stackId={stack.id} />
+          ) : (
+            <UnlinkButton stackId={stack.id} />
+          )}
         </div>
       </header>
       <div className='p-2'>
         <PrList baseRef={prs[0]?.baseRef ?? ''}>
           {prs.toReversed().map(pr => (
-            // A stack needs two PRs, so its PRs can only be removed while it has more.
-            <RemovablePrRow key={pr.id} pr={pr} removable={prs.length > 2} />
+            // A stack needs two PRs, so its PRs can only be removed while it has more. An archived stack is finished, so it keeps them all.
+            <RemovablePrRow key={pr.id} pr={pr} removable={prs.length > 2 && !stack.deletesAt} />
           ))}
         </PrList>
       </div>
@@ -124,6 +165,26 @@ function UnlinkButton({ stackId }: { stackId: string }) {
     >
       forkstack deletes its comments from these pull requests and stops managing them. The pull
       requests, branches, and commits stay as they are, and you can link them again later.
+    </ConfirmButton>
+  )
+}
+
+// The same action as unlinking, but an archived stack keeps its comments, so only the record goes.
+function DeleteButton({ stackId }: { stackId: string }) {
+  const form = useForm('/dashboard?deleteStack', { stackId }, { throwOnError: false })
+
+  return (
+    <ConfirmButton
+      form={form}
+      icon='i-lucide-trash-2'
+      label='Delete this stack'
+      iconOnly
+      title='Delete this stack now?'
+      confirmLabel='Delete stack'
+      pendingLabel='Deleting'
+    >
+      forkstack forgets this stack now instead of on the date shown. The pull requests and the
+      comments on them stay as they are.
     </ConfirmButton>
   )
 }
@@ -151,7 +212,7 @@ function RemovablePrRow({ pr, removable }: { pr: PullRequest; removable: boolean
   )
 }
 
-// Both actions change comments on GitHub, so they ask first in a dialog that says what changes and what stays.
+// Each action changes what forkstack manages, so it asks first in a dialog that says what changes and what stays.
 function ConfirmButton({
   form,
   icon,

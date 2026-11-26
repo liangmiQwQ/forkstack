@@ -15,6 +15,8 @@ export const stackTable = sqliteTable(
     baseRepo: text('baseRepo').notNull(),
     headRepo: text('headRepo').notNull(),
     restackStatus: text('restackStatus', { mode: 'json' }).$type<RestackStatus>(),
+    // Set once every PR merged. The stack stays readable for a while, then is deleted with its bot comments.
+    archivedAt: integer('archivedAt', { mode: 'timestamp_ms' }),
     createdAt: integer('createdAt', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date())

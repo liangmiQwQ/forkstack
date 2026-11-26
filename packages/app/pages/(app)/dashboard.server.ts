@@ -7,6 +7,7 @@ import { requireAuth } from 'void/auth'
 import { getGithubToken } from '../../src/account.ts'
 import { fetchPrs } from '../../src/github.ts'
 import { findOwnStack } from '../../src/own-stack.ts'
+import { deletionDate } from '../../src/stack-archive.ts'
 import { cacheSavedPrs, readCachedSavedPrs } from '../../src/stack-cache.ts'
 import { unlinkPrs, unlinkStack } from '../../src/stack-link.ts'
 import { listStacks } from '../../src/stack.ts'
@@ -20,7 +21,11 @@ export const loader = defineHandler(async c => {
 
   return {
     // The page builds its stacks from these database rows, so they are right on the first render and right after each action.
-    saved: saved.map(stack => ({ id: stack.id, prIds: stack.prs.map(pr => pr.id) })),
+    saved: saved.map(stack => ({
+      id: stack.id,
+      prIds: stack.prs.map(pr => pr.id),
+      deletesAt: deletionDate(stack)
+    })),
     // PRs from the last visit fill the first screen while GitHub answers.
     cachedPrs,
     prs: defer(async () => {

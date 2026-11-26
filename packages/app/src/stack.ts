@@ -1,6 +1,6 @@
 import type { PullRequest } from '@forkstack/core/discovery'
 import { stackPrTable, stackTable } from '@schema'
-import { asc, db, eq, inArray } from 'void/db'
+import { and, asc, db, eq, inArray, isNull, lte } from 'void/db'
 import type { SQL } from 'void/db'
 
 export interface StoredStack {
@@ -10,6 +10,8 @@ export interface StoredStack {
   /** The stack's PRs, bottom to top. */
   prs: StoredPr[]
   repo: { baseRepo: string; headRepo: string }
+  /** When every PR had merged, or `null` while any is open. */
+  archivedAt: Date | null
 }
 
 export interface StoredPr {
@@ -25,6 +27,10 @@ export function listStacks(userId: string): Promise<StoredStack[]> {
 export async function getStack(id: string): Promise<StoredStack | null> {
   const stacks = await queryStacks(eq(stackTable.id, id))
   return stacks.at(0) ?? null
+}
+
+export function listArchivedBefore(date: Date): Promise<StoredStack[]> {
+  return queryStacks(lte(stackTable.archivedAt, date))
 }
 
 export async function findStackId(prId: string): Promise<string | null> {
@@ -58,6 +64,14 @@ export async function deleteStack(id: string): Promise<void> {
   await db.delete(stackTable).where(eq(stackTable.id, id))
 }
 
+// Only the first call sets the time, so the deletion date shown on the stack stays the same.
+export async function archiveStack(id: string): Promise<void> {
+  await db
+    .update(stackTable)
+    .set({ archivedAt: new Date() })
+    .where(and(eq(stackTable.id, id), isNull(stackTable.archivedAt)))
+}
+
 export async function saveCommentId(prId: string, commentId: string): Promise<void> {
   await db.update(stackPrTable).set({ commentId }).where(eq(stackPrTable.prId, prId))
 }
@@ -73,6 +87,7 @@ async function queryStacks(where: SQL): Promise<StoredStack[]> {
       userId: stackTable.userId,
       baseRepo: stackTable.baseRepo,
       headRepo: stackTable.headRepo,
+      archivedAt: stackTable.archivedAt,
       prId: stackPrTable.prId,
       commentId: stackPrTable.commentId
     })
@@ -87,7 +102,8 @@ async function queryStacks(where: SQL): Promise<StoredStack[]> {
       id: row.stackId,
       userId: row.userId,
       prs: [],
-      repo: { baseRepo: row.baseRepo, headRepo: row.headRepo }
+      repo: { baseRepo: row.baseRepo, headRepo: row.headRepo },
+      archivedAt: row.archivedAt
     }
     stack.prs.push({ id: row.prId, commentId: row.commentId })
     stacks.set(row.stackId, stack)

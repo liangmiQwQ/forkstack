@@ -61,8 +61,17 @@ it.each([
   if ('ambiguous' in plans) {
     throw new Error('Expected a linear stack')
   }
-  expect(rebaseTargets(plans, scenario.main, scenario.merged)).toEqual({
+  expect(rebaseTargets(plans, scenario.main)).toEqual({
     onMain: scenario.onMain,
     layersOnly: scenario.layersOnly
   })
+})
+
+it('only rebases onto the base branch once the lowest open layer left its merged parent', () => {
+  const plans = planLayers([layer('1', ['base', 'a']), layer('2', ['squashed-a', 'b'])], 1)
+  if ('ambiguous' in plans) {
+    throw new Error('Expected a linear stack')
+  }
+
+  expect(rebaseTargets(plans, 'new-base')).toEqual({ onMain: true, layersOnly: false })
 })

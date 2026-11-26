@@ -8,18 +8,26 @@ const STACK_DOCS_URL = `${SITE_URL}/docs`
 
 // The comment is only rewritten when the stack's PRs change, so it only holds facts forkstack controls.
 // Live stack status and the rebase controls are on the stack page the "View stack" button links to.
+// Once every PR merged, forkstack deletes the stack after a while but leaves the comments, so they drop every link to forkstack's pages.
 export function renderComment(stackId: string, stack: PullRequest[], index: number): string {
   const pr = stack[index]
+  const merged = stack.every(pr => pr.state === 'MERGED')
 
   const body = [
     `This PR is in a stack (${index + 1} of ${stack.length}). Learn more about [stacked PRs created with forkstack](${STACK_DOCS_URL}).`,
     renderList(stack, index),
-    `${renderReviewButton(pr.id)} ${renderStackButton(stackId)}`,
-    "The stack's author can rebase it from the stack page."
+    ...(merged
+      ? ['Every PR in this stack has merged.']
+      : [
+          `${renderReviewButton(pr.id)} ${renderStackButton(stackId)}`,
+          "The stack's author can rebase it from the stack page."
+        ])
   ].join('\n\n')
 
   const warning = `> [!WARNING]\n> ${body.replaceAll('\n', '\n> ')}`
-  return [`${MARKER}:stack=${stackId} -->`, warning, renderAgentGuide(stack, index)].join('\n\n')
+  // Agents have nothing left to review or change once the stack merged.
+  const guide = merged ? [] : [renderAgentGuide(stack, index)]
+  return [`${MARKER}:stack=${stackId} -->`, warning, ...guide].join('\n\n')
 }
 
 // Drawn like a stack, with the top PR first and the base branch at the bottom.

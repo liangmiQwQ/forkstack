@@ -215,6 +215,22 @@ function ReviewLabel({ icon, label }: { icon: string; label: string }) {
   )
 }
 
+// Formatted in UTC, so the server and the browser render the same date.
+const DATE_FORMAT = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' })
+
+/** Says an archived stack is finished, and when forkstack deletes it. */
+export function ArchivedNotice({ deletesAt }: { deletesAt: string }) {
+  return (
+    <span className='flex items-center gap-2 text-sm text-neutral-500'>
+      <span className='i-octicon-archive-16' />
+      <span>
+        All merged · Deleted on{' '}
+        <time dateTime={deletesAt}>{DATE_FORMAT.format(new Date(deletesAt))}</time>
+      </span>
+    </span>
+  )
+}
+
 /** Shows "Syncing with GitHub" until `data` resolves. */
 export function SyncStatus({ data }: { data: Promise<unknown> }) {
   return (
