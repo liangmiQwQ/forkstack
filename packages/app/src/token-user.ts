@@ -6,6 +6,8 @@ import type { CloudContext } from 'void'
 import { and, db, eq } from 'void/db'
 import { kv } from 'void/kv'
 
+import { sha256 } from './hash.ts'
+
 export interface TokenUser {
   userId: string
   /** The caller's GitHub token, used for this request's GitHub calls and never stored. */
@@ -48,7 +50,7 @@ export async function requireTokenUser(c: CloudContext): Promise<TokenUser> {
 
 // Better Auth stores the GitHub user ID as the account ID, as a string.
 async function findGithubId(token: string): Promise<string | null> {
-  const key = await hash(token)
+  const key = await sha256(token)
   const cached = await githubIdByToken.get(key)
   if (cached !== null) {
     return cached
@@ -65,9 +67,4 @@ async function findGithubId(token: string): Promise<string | null> {
     }
     throw error
   }
-}
-
-async function hash(text: string) {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
-  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('')
 }

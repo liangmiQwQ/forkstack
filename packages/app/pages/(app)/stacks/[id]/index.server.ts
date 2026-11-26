@@ -6,6 +6,7 @@ import { getUser } from 'void/auth'
 import type { PageParams } from 'void/routes'
 
 import { readRestackStatus, restackIfMerged } from '../../../../src/restack-job.ts'
+import { syncMarkers } from '../../../../src/stack-markers.ts'
 import { describeStack } from '../../../../src/stack-notice.ts'
 import { fetchRebaseOptions, fetchStackPrs } from '../../../../src/stack-status.ts'
 import { getStack } from '../../../../src/stack.ts'
@@ -23,6 +24,7 @@ export const loader = defineHandler(async c => {
 
   // Each view reads the PRs anyway, so it checks for a merge the notifications missed for free.
   await restackIfMerged(stackId, prs)
+  await syncMarkers(stackId, prs)
   const [options, status, owner] = await Promise.all([
     fetchRebaseOptions(stack),
     readRestackStatus(stackId),
