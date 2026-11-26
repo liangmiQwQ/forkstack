@@ -35,7 +35,21 @@
         "binding": "ISR_CACHE",
         "id": "0f4e69deafe44d348a75376224045ed7"
       }
+    ],
+    "durable_objects": {
+      "bindings": [
+        {
+          "name": "VOID_LIVE",
+          "class_name": "VoidLiveStreamDurableObject"
+        }
+      ]
+    },
+    "migrations": [
+      {
+        "tag": "live-v1",
+        "new_sqlite_classes": ["VoidLiveStreamDurableObject"]
+      }
     ]
   },
-  "text": "// void:published-traffic:v1:eyJ3b3JrZXJzX2RldiI6ZmFsc2UsInByZXZpZXdfdXJscyI6ZmFsc2UsInJvdXRlcyI6W3sicGF0dGVybiI6ImZvcmtzdGFjay5kZXYiLCJjdXN0b21fZG9tYWluIjp0cnVlfV19\n{\n  \"account_id\": \"e1d7061b7bb4500473f0e5da1aa6651c\",\n  \"compatibility_date\": \"2026-02-24\",\n  \"name\": \"forkstack-app\",\n  \"routes\": [\n    {\n      \"pattern\": \"forkstack.dev\",\n      \"custom_domain\": true\n    }\n  ],\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"forkstack-app-db\",\n      \"database_id\": \"e04fbf61-e195-4143-b5e2-cbe4285398ba\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"kv_namespaces\": [\n    {\n      \"binding\": \"KV\",\n      \"id\": \"2859a5aee2fc47229f7a15de0b100f9b\"\n    },\n    {\n      \"binding\": \"ISR_CACHE\",\n      \"id\": \"0f4e69deafe44d348a75376224045ed7\"\n    }\n  ]\n}\n"
+  "text": "// void:published-traffic:v1:eyJ3b3JrZXJzX2RldiI6ZmFsc2UsInByZXZpZXdfdXJscyI6ZmFsc2UsInJvdXRlcyI6W3sicGF0dGVybiI6ImZvcmtzdGFjay5kZXYiLCJjdXN0b21fZG9tYWluIjp0cnVlfV19\n{\n  \"account_id\": \"e1d7061b7bb4500473f0e5da1aa6651c\",\n  \"compatibility_date\": \"2026-02-24\",\n  \"name\": \"forkstack-app\",\n  \"routes\": [\n    {\n      \"pattern\": \"forkstack.dev\",\n      \"custom_domain\": true\n    }\n  ],\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"forkstack-app-db\",\n      \"database_id\": \"e04fbf61-e195-4143-b5e2-cbe4285398ba\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"kv_namespaces\": [\n    {\n      \"binding\": \"KV\",\n      \"id\": \"2859a5aee2fc47229f7a15de0b100f9b\"\n    },\n    {\n      \"binding\": \"ISR_CACHE\",\n      \"id\": \"0f4e69deafe44d348a75376224045ed7\"\n    }\n  ],\n  \"durable_objects\": {\n    \"bindings\": [\n      {\n        \"name\": \"VOID_LIVE\",\n        \"class_name\": \"VoidLiveStreamDurableObject\"\n      }\n    ]\n  },\n  \"migrations\": [\n    {\n      \"tag\": \"live-v1\",\n      \"new_sqlite_classes\": [\n        \"VoidLiveStreamDurableObject\"\n      ]\n    }\n  ]\n}\n"
 }
