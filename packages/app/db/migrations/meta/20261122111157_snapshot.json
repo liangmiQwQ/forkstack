@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "aa884291-51e6-4a2e-a5f9-c628c856e9eb",
+  "id": "a0356852-9fe1-495b-b910-c63a7b1defb1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "stack_pr": {
@@ -73,13 +73,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "restackStatus": {
-          "name": "restackStatus",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "createdAt": {
