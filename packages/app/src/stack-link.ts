@@ -32,9 +32,12 @@ export async function linkStack(
   return id
 }
 
+// An archived stack's comments no longer link to forkstack, so they stay on the PRs as a record of the stack.
 export async function unlinkStack(stack: StoredStack): Promise<void> {
   await deleteStack(stack.id)
-  await unmarkPrs(stack.prs)
+  if (!stack.archivedAt) {
+    await unmarkPrs(stack.prs)
+  }
 }
 
 // A stack needs two PRs, so when fewer would be left, the whole stack is unlinked.

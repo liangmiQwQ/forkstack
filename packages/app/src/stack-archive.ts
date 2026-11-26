@@ -19,7 +19,7 @@ export async function archiveIfMerged(stackId: string, prs: PullRequest[]): Prom
   }
 }
 
-// The PRs and their merge history stay on GitHub, only forkstack's record and comments go.
+// Only forkstack's record goes. The PRs, their merge history and the bot comments stay on GitHub.
 export async function deleteExpiredStacks(): Promise<void> {
   const expired = await listArchivedBefore(new Date(Date.now() - ARCHIVE_MS))
   for (const stack of expired) {

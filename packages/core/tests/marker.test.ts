@@ -27,3 +27,13 @@ it('tells readers the author rebases from the stack page', () => {
 
   expect(comment).toContain("> The stack's author can rebase it from the stack page.")
 })
+
+it('drops the links to forkstack once every PR merged, since the stack is deleted later', () => {
+  const stack = [pr(1, { state: 'MERGED' }), pr(2, { state: 'MERGED' })]
+
+  const comment = renderComment('stack', stack, 1)
+
+  expect(comment).not.toContain('https://forkstack.dev/stacks/stack')
+  expect(comment).not.toContain('https://forkstack.dev/review/')
+  expect(comment).toContain('> Every PR in this stack has merged.')
+})
