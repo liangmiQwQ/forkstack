@@ -61,7 +61,7 @@ It rebases each branch onto the new head of the one below it, and the bottom ope
 
 When a branch conflicts, resolve the conflicts, `git add` them, and run `forkstack rebase --continue`. Run `forkstack rebase --abort` to restore every branch as it was.
 
-You don't need to rebase after a merge. When the bottom PR merges, forkstack rebases the rest on GitHub. You can also rebase from the [dashboard](/dashboard).
+You don't need to rebase after a merge. When the bottom PR merges, forkstack rebases the rest on GitHub. You can also rebase from the [dashboard](/dashboard). Merged PRs stay in the stack, so its page and the comment on each PR keep showing the whole stack. Once every PR has merged, the stack moves to the history on your dashboard, and forkstack deletes it and its comments 30 days later.
 
 After forkstack rebases on GitHub, your local branches are behind. Bring them up to date:
 

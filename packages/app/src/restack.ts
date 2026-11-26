@@ -9,7 +9,7 @@ import { fetchRestackState } from './github.ts'
 import { replayLayer } from './replay.ts'
 
 export type RestackResult =
-  | { state: 'done'; updated: number; merged: string[] }
+  | { state: 'done'; updated: number }
   | { state: 'conflict'; prId: string; commit: string }
   | { state: 'ambiguous'; prId: string }
   | { state: 'unsupported' }
@@ -32,7 +32,7 @@ async function inspectRestack(prIds: string[]) {
     state: 'ready',
     stack: state,
     plans,
-    targets: rebaseTargets(plans, state.mainOid, state.merged)
+    targets: rebaseTargets(plans, state.mainOid)
   } as const
 }
 
@@ -57,9 +57,8 @@ export async function restack(prIds: string[], onMain: boolean): Promise<Restack
     return plan
   }
   const { stack: state, plans, targets } = plan
-  const merged = state.layers.slice(0, state.merged).map(layer => layer.prId)
   if (!(onMain ? targets.onMain : targets.layersOnly)) {
-    return { state: 'done', updated: 0, merged }
+    return { state: 'done', updated: 0 }
   }
 
   const commits = plans.reduce((sum, plan) => sum + plan.commits.length, 0)
@@ -74,7 +73,8 @@ export async function restack(prIds: string[], onMain: boolean): Promise<Restack
   }
 
   const git = createGit(token, state.repo)
-  const onto = onMain || merged.length > 0 ? state.mainOid : plans[0].baseOid
+  // A layer leaving its merged parent goes onto the base branch, which already holds the parent's commits.
+  const onto = onMain || plans[0].onParent ? state.mainOid : plans[0].baseOid
   const result = await withScratchBranch(git, plans[0].headOid, scratch =>
     replayLayers(git, scratch, onto, plans)
   )
@@ -86,7 +86,7 @@ export async function restack(prIds: string[], onMain: boolean): Promise<Restack
 
   return result.conflict
     ? { state: 'conflict', ...result.conflict }
-    : { state: 'done', updated: result.updates.length, merged }
+    : { state: 'done', updated: result.updates.length }
 }
 
 async function withScratchBranch<T>(git: Git, oid: string, run: (scratch: string) => Promise<T>) {

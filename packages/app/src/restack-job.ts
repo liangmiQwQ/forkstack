@@ -11,7 +11,6 @@ import { RESTACK_TIMEOUT_MS } from './restack-status.ts'
 import type { RestackStatus } from './restack-status.ts'
 import { readRebaseOptions, restack } from './restack.ts'
 import type { RestackResult } from './restack.ts'
-import { unlinkPrs } from './stack-link.ts'
 import { clearStackStatus } from './stack-status.ts'
 import { getStack } from './stack.ts'
 import type { StoredStack } from './stack.ts'
@@ -115,14 +114,11 @@ export async function runRestack(
     if (!stack) {
       return
     }
+    // Merged PRs stay in the stack, since they mark where the layers above them start.
     const result = await restack(
       stack.prs.map(pr => pr.id),
       onMain
     )
-    // Merged PRs are kept until the layers above them move onto the base branch, since they mark where those layers' commits start.
-    if (result.state === 'done' && result.merged.length > 0) {
-      await unlinkPrs(stack, result.merged)
-    }
     await finishRestack(stackId, claim.at, result)
   } catch (error) {
     await finishRestack(stackId, claim.at, { state: 'failed' })
@@ -149,11 +145,7 @@ async function finishRestack(
       )
     )
     .returning({ id: stackTable.id })
-  // Unlinking a finished stack deletes its row. An open tab can still receive its final outcome.
-  if (
-    rows.length > 0 ||
-    (outcome.state === 'done' && outcome.merged.length > 0 && !(await getStack(stackId)))
-  ) {
+  if (rows.length > 0) {
     await publishStatus(stackId, status)
   }
 }

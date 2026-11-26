@@ -27,7 +27,7 @@ export default function RestackPage(props: Props) {
 // The live status sits above the Suspense boundary, so its stream stays open while GitHub loads.
 // A refresh brings a new `github` promise, which resets the error boundary.
 function StackRebase({ github, status: saved, expiredAt, ...props }: Props) {
-  const { status, running } = useRestackStatus(props.stackId, saved, expiredAt, props.prCount)
+  const { status, running } = useRestackStatus(props.stackId, saved, expiredAt)
   const view = { ...props, status, running }
 
   return (
@@ -171,12 +171,7 @@ function RestackButton({
   )
 }
 
-function useRestackStatus(
-  stackId: string,
-  saved: RestackStatus | null,
-  expiredAt: string | null,
-  prCount: number
-) {
+function useRestackStatus(stackId: string, saved: RestackStatus | null, expiredAt: string | null) {
   const router = useRouter()
   const [latest, setLatest] = useState<RestackStatus | null>(null)
   const [timedOut, setTimedOut] = useState(expiredAt)
@@ -184,11 +179,7 @@ function useRestackStatus(
 
   const receive = useEffectEvent((data: RestackStatus) => {
     setLatest(previous => (previous && previous.at >= data.at ? previous : data))
-    if (
-      data.state !== 'running' &&
-      (!status || data.at > status.at) &&
-      (data.state !== 'done' || prCount - data.merged.length >= 2)
-    ) {
+    if (data.state !== 'running' && (!status || data.at > status.at)) {
       void router.refresh()
     }
   })

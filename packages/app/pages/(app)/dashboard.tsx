@@ -4,6 +4,7 @@ import { Suspense, use, useId, useRef } from 'react'
 import type { ComponentProps, ReactNode } from 'react'
 
 import {
+  ArchivedNotice,
   PendingIcon,
   PrList,
   PrListSkeleton,
@@ -63,10 +64,34 @@ function FreshStackList({ prs, ...props }: Pick<Props, 'saved' | 'cachedPrs' | '
   return <StackList {...props} freshPrs={use(prs)} />
 }
 
-function StackList({ saved, ...sources }: StackSources & { saved: SavedStack[] }) {
+// Stacks whose PRs all merged move to the history, until forkstack deletes them.
+function StackList(props: StackSources & { saved: SavedStack[] }) {
+  return (
+    <>
+      <StackCards {...props} archived={false} />
+      {props.saved.some(stack => stack.deletesAt) && (
+        <section className='flex flex-col gap-3'>
+          <h2 className='flex items-center gap-2 text-sm font-medium text-neutral-500'>
+            <span className='i-lucide-history' />
+            History
+          </h2>
+          <StackCards {...props} archived />
+        </section>
+      )}
+    </>
+  )
+}
+
+function StackCards({
+  saved,
+  archived,
+  ...sources
+}: StackSources & { saved: SavedStack[]; archived: boolean }) {
+  const stacks = saved.filter(stack => Boolean(stack.deletesAt) === archived)
+
   return (
     <ul className='flex flex-col gap-4'>
-      {saved.map(stack => (
+      {stacks.map(stack => (
         <li key={stack.id}>
           <StackCard stack={stack} {...sources} />
         </li>
@@ -90,7 +115,11 @@ function StackCard({ stack, cachedPrs, freshPrs }: StackSources & { stack: Saved
           <span className='text-sm'>Pull requests not found</span>
         )}
         <div className='flex items-center gap-3'>
-          <span className='text-xs text-neutral-500'>{prs.length} pull requests</span>
+          {stack.deletesAt ? (
+            <ArchivedNotice deletesAt={stack.deletesAt} />
+          ) : (
+            <span className='text-xs text-neutral-500'>{prs.length} pull requests</span>
+          )}
           <Link href={`/stacks/${stack.id}`} className='btn-ghost'>
             <span className='i-lucide-panel-top-open' />
             View
@@ -101,8 +130,8 @@ function StackCard({ stack, cachedPrs, freshPrs }: StackSources & { stack: Saved
       <div className='p-2'>
         <PrList baseRef={prs[0]?.baseRef ?? ''}>
           {prs.toReversed().map(pr => (
-            // A stack needs two PRs, so its PRs can only be removed while it has more.
-            <RemovablePrRow key={pr.id} pr={pr} removable={prs.length > 2} />
+            // A stack needs two PRs, so its PRs can only be removed while it has more. An archived stack is finished, so it keeps them all.
+            <RemovablePrRow key={pr.id} pr={pr} removable={prs.length > 2 && !stack.deletesAt} />
           ))}
         </PrList>
       </div>

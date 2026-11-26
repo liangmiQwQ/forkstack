@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import {
+  ArchivedNotice,
   LoadError,
   PrList,
   PrListSkeleton,
@@ -43,6 +44,7 @@ function StackView({
   owner,
   canRebase,
   signedIn,
+  deletesAt,
   github
 }: ViewProps & { github?: GitHubData }) {
   const prs = github?.prs
@@ -51,7 +53,9 @@ function StackView({
   return (
     <div className='flex flex-col gap-6'>
       <StackHeader signedIn={signedIn} repo={repo}>
-        {github ? (
+        {deletesAt ? (
+          <ArchivedNotice deletesAt={deletesAt} />
+        ) : github ? (
           <StackState
             stackId={stackId}
             notice={github.notice}

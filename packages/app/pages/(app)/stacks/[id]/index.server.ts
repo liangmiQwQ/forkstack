@@ -6,6 +6,7 @@ import { getUser } from 'void/auth'
 import type { PageParams } from 'void/routes'
 
 import { readRestackStatus, restackIfMerged } from '../../../../src/restack-job.ts'
+import { archiveIfMerged, deletionDate } from '../../../../src/stack-archive.ts'
 import { syncMarkers } from '../../../../src/stack-markers.ts'
 import { describeStack } from '../../../../src/stack-notice.ts'
 import { fetchRebaseOptions, fetchStackPrs } from '../../../../src/stack-status.ts'
@@ -31,6 +32,8 @@ export const loader = defineHandler(async c => {
     prCount: stack.prs.length,
     owner: await getPublicProfile(stack.userId),
     canRebase: user?.id === stack.userId,
+    // Archived stacks show when they will be deleted, without waiting for GitHub.
+    deletesAt: deletionDate(stack),
     signedIn: Boolean(user),
     github: defer(async () => {
       const prs = await prsPromise
@@ -40,6 +43,7 @@ export const loader = defineHandler(async c => {
 
       // Each view reads the PRs anyway, so it checks for a merge the notifications missed for free.
       await restackIfMerged(stackId, prs)
+      await archiveIfMerged(stackId, prs)
       await syncMarkers(stackId, prs)
       const [options, status] = await Promise.all([
         fetchRebaseOptions(stack),

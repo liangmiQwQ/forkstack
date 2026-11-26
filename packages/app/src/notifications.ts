@@ -4,6 +4,7 @@ import { env } from 'void/env'
 import { kv } from 'void/kv'
 
 import { restackIfMerged } from './restack-job.ts'
+import { archiveIfMerged } from './stack-archive.ts'
 import { syncMarkers } from './stack-markers.ts'
 import { clearStackStatus, fetchStackPrs } from './stack-status.ts'
 import { findStackId } from './stack.ts'
@@ -72,6 +73,7 @@ async function checkPr(api: typeof request, url: string) {
   const prs = await fetchStackPrs(stackId)
   if (prs) {
     await restackIfMerged(stackId, prs)
+    await archiveIfMerged(stackId, prs)
     await syncMarkers(stackId, prs)
   }
 }

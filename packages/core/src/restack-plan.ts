@@ -18,6 +18,8 @@ export interface LayerPlan {
   baseOid: string
   /** The layer's own commits, bottom to top. */
   commits: string[]
+  /** Whether those commits sit on the parent's, rather than on the base branch. */
+  onParent: boolean
 }
 
 // Nothing about a stack is stored between restacks, since users force-push, squash and restack by hand outside forkstack.
@@ -46,12 +48,13 @@ export function planLayers(
 }
 
 // Once a lower layer moves, the layers above it must follow its new head.
-export function rebaseTargets(plans: LayerPlan[], mainOid: string, merged: number) {
+// The lowest open layer also moves while it still sits on a merged parent, since those commits are already in the base branch.
+export function rebaseTargets(plans: LayerPlan[], mainOid: string) {
   const baseMoved = plans.length > 0 && plans[0].baseOid !== mainOid
   const layerMoved = plans.some((plan, i) => i > 0 && plan.baseOid !== plans[i - 1].headOid)
   return {
     onMain: baseMoved || layerMoved,
-    layersOnly: layerMoved || (merged > 0 && baseMoved)
+    layersOnly: layerMoved || (baseMoved && plans[0].onParent)
   }
 }
 
@@ -85,5 +88,12 @@ function planLayer(
     oid = parents[0]
   }
 
-  return { prId: layer.prId, ref: layer.ref, headOid: layer.headOid, baseOid: oid, commits }
+  return {
+    prId: layer.prId,
+    ref: layer.ref,
+    headOid: layer.headOid,
+    baseOid: oid,
+    commits,
+    onParent: parentCommits.has(oid)
+  }
 }
