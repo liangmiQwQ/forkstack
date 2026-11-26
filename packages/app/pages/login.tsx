@@ -1,4 +1,3 @@
-import { Link } from '@void/react'
 import { useState } from 'react'
 import { auth } from 'void/client'
 
@@ -37,11 +36,6 @@ export default function LoginPage({ error, next }: Props) {
           </p>
         )}
       </div>
-
-      <Link href='/docs' className='btn-ghost self-start'>
-        <span className='i-lucide-book-open' />
-        Read the docs
-      </Link>
 
       <p className='text-xs text-neutral-500'>
         forkstack asks for access to your public repositories so it can update your pull requests

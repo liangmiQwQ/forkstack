@@ -1,9 +1,16 @@
 import type { CommentsByPr, PullRequest } from '@forkstack/core/discovery'
-import { renderComment } from '@forkstack/core/marker'
+import { MARKER, renderComment } from '@forkstack/core/marker'
 import { env } from 'void/env'
 import { kv } from 'void/kv'
 
-import { addComment, deleteComment, fetchViewerComments, updateComment } from './github.ts'
+import {
+  addComment,
+  deleteComment,
+  fetchViewerComments,
+  fetchViewerCommentsById,
+  updateComment
+} from './github.ts'
+import type { Comment } from './github.ts'
 import { sha256 } from './hash.ts'
 import { getStack, saveCommentId } from './stack.ts'
 import type { StoredPr, StoredStack } from './stack.ts'
@@ -15,15 +22,22 @@ const RENDERED_TTL_SECONDS = 30 * 24 * 60 * 60
 const renderedByStack = kv.map<string>('rendered-markers')
 
 // Markers are bot comments, since organizations often block OAuth apps from editing PRs and external contributors can't approve them.
+// A PR may carry markers already, such as when its stack was lost with the database, so the newest one is reused and older ones are deleted.
 export async function markPrs(prs: PullRequest[], stackId: string): Promise<void> {
+  const comments = await fetchViewerCommentsById(
+    env.GITHUB_BOT_TOKEN,
+    prs.map(pr => pr.id)
+  )
+
   for (const [index, pr] of prs.entries()) {
+    const markers = (comments.get(pr.id) ?? []).filter(comment => comment.body.includes(MARKER))
     // GitHub asks clients to send mutations one at a time, or it may apply its secondary rate limit.
-    const commentId = await addComment(
-      env.GITHUB_BOT_TOKEN,
-      pr.id,
-      renderComment(stackId, prs, index)
-    )
+    const commentId = await writeMarker(pr.id, markers.at(-1), renderComment(stackId, prs, index))
     await saveCommentId(pr.id, commentId)
+
+    for (const duplicate of markers.slice(0, -1)) {
+      await deleteComment(env.GITHUB_BOT_TOKEN, duplicate.id)
+    }
   }
   await saveRendered(stackId, await hashMarkers(stackId, prs))
 }
@@ -71,6 +85,19 @@ function hashMarkers(stackId: string, prs: PullRequest[]): Promise<string> {
 
 async function saveRendered(stackId: string, hash: string): Promise<void> {
   await renderedByStack.put(stackId, hash, { ttl: RENDERED_TTL_SECONDS })
+}
+
+async function writeMarker(
+  prId: string,
+  existing: Comment | undefined,
+  body: string
+): Promise<string> {
+  if (!existing) {
+    return addComment(env.GITHUB_BOT_TOKEN, prId, body)
+  }
+
+  await updateComment(env.GITHUB_BOT_TOKEN, existing.id, body)
+  return existing.id
 }
 
 // Read with the bot token, so a marker someone else copies into a comment is ignored.
