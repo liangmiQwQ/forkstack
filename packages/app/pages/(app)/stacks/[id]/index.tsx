@@ -1,9 +1,10 @@
-import { Link, useRouter } from '@void/react'
+import { Link } from '@void/react'
 import { Suspense, use } from 'react'
 import type { ReactNode } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import {
+  LoadError,
   PrList,
   PrListSkeleton,
   PrRow,
@@ -88,26 +89,10 @@ function StackView({
 
 // The saved repository stays on screen, so the visitor still knows which stack failed to load.
 function StackError({ repo, signedIn }: ViewProps) {
-  const router = useRouter()
-
   return (
     <div className='flex flex-col gap-6'>
       <StackHeader signedIn={signedIn} repo={repo} loading={false} />
-      <section
-        className='card flex flex-col items-center gap-3 px-6 py-16 text-center'
-        role='alert'
-      >
-        <span className='i-lucide-cloud-off text-3xl text-neutral-500' />
-        <h2 className='font-medium'>Couldn&apos;t load the pull requests</h2>
-        <p className='max-w-sm text-sm text-neutral-500'>
-          GitHub didn&apos;t answer, or the stack was unlinked while the page loaded. Nothing on the
-          pull requests changed.
-        </p>
-        <button type='button' className='btn-outline mt-2' onClick={() => void router.refresh()}>
-          <span className='i-lucide-refresh-cw' />
-          Try again
-        </button>
-      </section>
+      <LoadError />
     </div>
   )
 }

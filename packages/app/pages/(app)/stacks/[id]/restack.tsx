@@ -1,52 +1,96 @@
 import type { PullRequest } from '@forkstack/core/discovery'
 import { Form, Link, useForm, useRouter } from '@void/react'
-import { useEffect, useEffectEvent, useState } from 'react'
+import { Suspense, use, useEffect, useEffectEvent, useState } from 'react'
 import type { ReactNode } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 import { connectLiveStream } from 'void/live/client'
 
-import { PendingIcon, PrList, PrRow, StackRepo } from '../../../../src/components/stack.tsx'
+import {
+  LoadError,
+  PendingIcon,
+  PrList,
+  PrListSkeleton,
+  PrRow,
+  Skeleton,
+  StackRepo
+} from '../../../../src/components/stack.tsx'
 import { RESTACK_TIMEOUT_MS } from '../../../../src/restack-status.ts'
 import type { RestackStatus } from '../../../../src/restack-status.ts'
 import type { Props } from './restack.server.ts'
+
+type GitHubData = Awaited<Props['github']>
+type ViewProps = Omit<Props, 'github' | 'expiredAt'> & { running: boolean }
 
 export default function RestackPage(props: Props) {
   return <StackRebase key={props.stackId} {...props} />
 }
 
-function StackRebase({ stackId, prs, status: saved, expiredAt, installUrl, options }: Props) {
-  const { status, running } = useRestackStatus(stackId, saved, expiredAt, prs.length)
+// The live status sits above the Suspense boundary, so its stream stays open while GitHub loads.
+// A refresh brings a new `github` promise, which resets the error boundary.
+function StackRebase({ github, status: saved, expiredAt, ...props }: Props) {
+  const { status, running } = useRestackStatus(props.stackId, saved, expiredAt, props.prCount)
+  const view = { ...props, status, running }
+
+  return (
+    // oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop, react-perf/jsx-no-new-array-as-prop -- ErrorBoundary takes these as props, and the React Compiler memoizes them.
+    <ErrorBoundary resetKeys={[github]} fallback={<RebaseError stackId={props.stackId} />}>
+      {/* oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- Suspense takes its fallback as a prop, and the React Compiler memoizes it. */}
+      <Suspense fallback={<RebaseView {...view} />}>
+        <LoadedRebaseView {...view} github={github} />
+      </Suspense>
+    </ErrorBoundary>
+  )
+}
+
+function LoadedRebaseView({ github, ...props }: ViewProps & Pick<Props, 'github'>) {
+  return <RebaseView {...props} github={use(github)} />
+}
+
+// The database rows render right away, and the buttons stay disabled until `github` brings the rebase options.
+function RebaseView({
+  stackId,
+  repo,
+  prCount,
+  status,
+  running,
+  installUrl,
+  github
+}: ViewProps & { github?: GitHubData }) {
+  const prs = github?.prs
+  const options = github?.options
+  // Stacks saved before forkstack stored their repository take it from GitHub.
+  const shownRepo = repo ?? prs?.[0]
 
   return (
     <div className='flex flex-col gap-6'>
-      <header className='flex flex-col gap-3'>
-        <Link href={`/stacks/${stackId}`} className='nav-link -ml-2.5 self-start'>
-          <span className='i-lucide-arrow-left' />
-          Stack
-        </Link>
-        <h1 className='text-2xl font-semibold'>Rebase stack</h1>
-        <p className='max-w-2xl text-sm text-neutral-500'>
-          forkstack replays each pull request&apos;s own commits onto the new head of the one below
-          it, then force-pushes every branch that changed at once. Checks run again on those pull
-          requests.
-        </p>
-      </header>
+      <RebaseHeader stackId={stackId} />
 
-      {options.problem && <Notice icon='i-lucide-circle-alert'>{options.problem}</Notice>}
-      {!options.problem && !options.onMain && (
+      {options?.problem && <Notice icon='i-lucide-circle-alert'>{options.problem}</Notice>}
+      {options && !options.problem && !options.onMain && (
         <Notice icon='i-lucide-circle-check'>This stack is up to date.</Notice>
       )}
-      {status && (running || (options.onMain && !options.problem)) && (
+      {status && (running || (options?.onMain && !options.problem)) && (
         <StatusNotice status={status} running={running} prs={prs} installUrl={installUrl} />
       )}
 
       <article className='card overflow-hidden'>
-        <header className='card-header'>{prs[0] && <StackRepo repo={prs[0]} />}</header>
+        <header className='card-header'>
+          {shownRepo ? (
+            <StackRepo repo={shownRepo} />
+          ) : (
+            !github && <Skeleton className='h-5 w-72 max-w-full' />
+          )}
+        </header>
         <div className='p-2'>
-          <PrList baseRef={prs[0]?.baseRef ?? ''}>
-            {prs.toReversed().map(pr => (
-              <PrRow key={pr.id} pr={pr} />
-            ))}
-          </PrList>
+          {prs ? (
+            <PrList baseRef={prs[0]?.baseRef ?? ''}>
+              {prs.toReversed().map(pr => (
+                <PrRow key={pr.id} pr={pr} />
+              ))}
+            </PrList>
+          ) : (
+            <PrListSkeleton size={prCount} />
+          )}
         </div>
       </article>
 
@@ -54,22 +98,48 @@ function StackRebase({ stackId, prs, status: saved, expiredAt, installUrl, optio
         <RestackButton
           stackId={stackId}
           onMain
-          disabled={running || !options.onMain}
+          disabled={running || !options?.onMain}
           icon='i-lucide-git-pull-request-arrow'
-          label={`Rebase onto ${prs[0]?.baseRef ?? 'base'}`}
+          label={`Rebase onto ${prs?.[0]?.baseRef ?? 'base'}`}
           solid
         />
         <RestackButton
           stackId={stackId}
           onMain={false}
-          disabled={running || !options.layersOnly}
+          disabled={running || !options?.layersOnly}
           icon='i-lucide-layers'
           label={
-            options.onMain && !options.layersOnly ? 'Layers up to date' : 'Restack layers only'
+            options?.onMain && !options.layersOnly ? 'Layers up to date' : 'Restack layers only'
           }
         />
       </div>
     </div>
+  )
+}
+
+function RebaseError({ stackId }: Pick<Props, 'stackId'>) {
+  return (
+    <div className='flex flex-col gap-6'>
+      <RebaseHeader stackId={stackId} />
+      <LoadError />
+    </div>
+  )
+}
+
+function RebaseHeader({ stackId }: Pick<Props, 'stackId'>) {
+  return (
+    <header className='flex flex-col gap-3'>
+      <Link href={`/stacks/${stackId}`} className='nav-link -ml-2.5 self-start'>
+        <span className='i-lucide-arrow-left' />
+        Stack
+      </Link>
+      <h1 className='text-2xl font-semibold'>Rebase stack</h1>
+      <p className='max-w-2xl text-sm text-neutral-500'>
+        forkstack replays each pull request&apos;s own commits onto the new head of the one below
+        it, then force-pushes every branch that changed at once. Checks run again on those pull
+        requests.
+      </p>
+    </header>
   )
 }
 
@@ -189,10 +259,11 @@ function StatusNotice({
 }: {
   status: RestackStatus
   running: boolean
-  prs: PullRequest[]
+  /** Missing while GitHub loads, when only a running rebase shows. */
+  prs?: PullRequest[]
   installUrl: string
 }) {
-  const number = (prId: string) => prs.find(pr => pr.id === prId)?.number
+  const number = (prId: string) => prs?.find(pr => pr.id === prId)?.number
 
   switch (status.state) {
     case 'running': {

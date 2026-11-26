@@ -1,4 +1,5 @@
 import type { PullRequest } from '@forkstack/core/discovery'
+import { useRouter } from '@void/react'
 import { Suspense, use, useState } from 'react'
 import type { ReactNode } from 'react'
 
@@ -260,5 +261,25 @@ export function PrListSkeleton({ size }: { size: number }) {
         </div>
       ))}
     </div>
+  )
+}
+
+// Shown when a page's deferred GitHub reads fail, and its retry reads them again.
+export function LoadError() {
+  const router = useRouter()
+
+  return (
+    <section className='card flex flex-col items-center gap-3 px-6 py-16 text-center' role='alert'>
+      <span className='i-lucide-cloud-off text-3xl text-neutral-500' />
+      <h2 className='font-medium'>Couldn&apos;t load the pull requests</h2>
+      <p className='max-w-sm text-sm text-neutral-500'>
+        GitHub didn&apos;t answer, or the stack was unlinked while the page loaded. Nothing on the
+        pull requests changed.
+      </p>
+      <button type='button' className='btn-outline mt-2' onClick={() => void router.refresh()}>
+        <span className='i-lucide-refresh-cw' />
+        Try again
+      </button>
+    </section>
   )
 }
