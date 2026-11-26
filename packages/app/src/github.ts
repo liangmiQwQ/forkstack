@@ -276,6 +276,13 @@ export async function searchOpenPrs(token: string): Promise<PullRequest[]> {
   return prs
 }
 
+export async function fetchLogin(token: string): Promise<string> {
+  const { viewer } = await createClient(token)<{ viewer: { login: string } }>(
+    '{ viewer { login } }'
+  )
+  return viewer.login
+}
+
 export async function fetchPrs(token: string, ids: string[]): Promise<PullRequest[]> {
   const nodes = await requestNodes<PullRequestNode>(token, PRS_QUERY, ids)
   return nodes.map(toPullRequest)

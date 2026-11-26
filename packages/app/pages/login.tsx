@@ -10,7 +10,8 @@ export default function LoginPage({ error, next }: Props) {
     setPending(true)
     void auth.signIn.social({
       provider: 'github',
-      callbackURL: next,
+      // Signing in ends on the GitHub App step, which skips itself once the app is installed.
+      callbackURL: `/login/install?next=${encodeURIComponent(next)}`,
       errorCallbackURL: `/login?next=${encodeURIComponent(next)}`
     })
   }

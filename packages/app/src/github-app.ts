@@ -7,29 +7,50 @@ import { env } from 'void/env'
 // Returns `null` when the app is not installed on the repository.
 export async function getRepoToken(repo: string): Promise<string | null> {
   const [owner, name] = repo.split('/')
-  const auth = createAppAuth({
-    appId: env.GITHUB_APP_ID,
-    privateKey: env.GITHUB_APP_PRIVATE_KEY
-  })
+  const auth = createAuth()
+  const headers = await appHeaders(auth)
 
-  const installationId = await findInstallationId(await auth({ type: 'app' }), owner, name)
-  if (installationId === null) {
+  const installation = await nullIfNotFound(
+    request('GET /repos/{owner}/{repo}/installation', { owner, repo: name, headers })
+  )
+  if (installation === null) {
     return null
   }
 
   // Scoped to the one repository, so a bug can't touch the user's other repositories.
-  const { token } = await auth({ type: 'installation', installationId, repositoryNames: [name] })
+  const { token } = await auth({
+    type: 'installation',
+    installationId: installation.data.id,
+    repositoryNames: [name]
+  })
   return token
 }
 
-async function findInstallationId(appAuth: { token: string }, owner: string, repo: string) {
+// True once the user installs the app on their account, whichever repositories they pick.
+export async function isInstalledFor(login: string): Promise<boolean> {
+  const headers = await appHeaders(createAuth())
+  const installation = await nullIfNotFound(
+    request('GET /users/{username}/installation', { username: login, headers })
+  )
+  return installation !== null
+}
+
+function createAuth() {
+  return createAppAuth({
+    appId: env.GITHUB_APP_ID,
+    privateKey: env.GITHUB_APP_PRIVATE_KEY
+  })
+}
+
+async function appHeaders(auth: ReturnType<typeof createAuth>) {
+  const { token } = await auth({ type: 'app' })
+  return { authorization: `bearer ${token}` }
+}
+
+// GitHub answers 404 when the app has no installation there.
+async function nullIfNotFound<T>(response: Promise<T>): Promise<T | null> {
   try {
-    const { data } = await request('GET /repos/{owner}/{repo}/installation', {
-      owner,
-      repo,
-      headers: { authorization: `bearer ${appAuth.token}` }
-    })
-    return data.id
+    return await response
   } catch (error) {
     if (error instanceof RequestError && error.status === 404) {
       return null

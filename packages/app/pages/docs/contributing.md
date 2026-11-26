@@ -25,7 +25,7 @@ Or install it from npm, and run it as `forkstack`:
 npm install -g forkstack
 ```
 
-Then sign in to forkstack once. It opens forkstack.dev in your browser, where you sign in with the same GitHub account as `gh`. forkstack keeps using the token of `gh`, so it stores nothing on your machine.
+Then sign in to forkstack once. It opens forkstack.dev in your browser, where you sign in with the same GitHub account as `gh` and install the forkstack GitHub App on your forks. forkstack keeps using the token of `gh`, so it stores nothing on your machine.
 
 ```sh
 forkstack login
