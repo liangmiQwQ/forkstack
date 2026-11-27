@@ -14,7 +14,9 @@ export function renderComment(stackId: string, stack: PullRequest[], index: numb
   const pr = stack[index]
   const merged = stack.every(pr => pr.state === 'MERGED')
 
+  const notice = mergeNotice(stack, index)
   const body = [
+    ...(notice ? [notice.line] : []),
     `This PR is in a stack (${index + 1} of ${stack.length}). Learn more about [stacked PRs created with forkstack](${STACK_DOCS_URL}). Maintainers: [merging and rebasing a stack](${MAINTAINERS_URL}).`,
     renderList(stack, index),
     ...(merged
@@ -25,10 +27,41 @@ export function renderComment(stackId: string, stack: PullRequest[], index: numb
         ])
   ].join('\n\n')
 
-  const warning = `> [!WARNING]\n> ${body.replaceAll('\n', '\n> ')}`
+  const warning = `> [!${notice?.alert ?? 'WARNING'}]\n> ${body.replaceAll('\n', '\n> ')}`
   // Agents have nothing left to review or change once the stack merged.
   const guide = merged ? [] : [renderAgentGuide(stack, index)]
   return [`${MARKER}:stack=${stackId} -->`, warning, ...guide].join('\n\n')
+}
+
+// The lowest open PR is safe to merge. Any open PR above it would also merge the open PRs below it.
+// Merged PRs, and a stack that has fully merged, keep the comment they had before this note.
+function mergeNotice(stack: PullRequest[], index: number) {
+  if (stack[index].state !== 'OPEN') {
+    return null
+  }
+
+  const lowest = stack.findIndex(pr => pr.state === 'OPEN')
+  if (index === lowest) {
+    return { alert: 'NOTE', line: '**This PR is next to merge.**' }
+  }
+
+  const below = stack.slice(lowest, index).filter(pr => pr.state === 'OPEN')
+  const first = stack[lowest]
+  return {
+    alert: 'WARNING',
+    line: `**Don't merge this PR yet.** Merging it also merges ${englishList(below.map(pr => pr.number))}. Merge #${first.number} first.`
+  }
+}
+
+function englishList(numbers: number[]) {
+  const refs = numbers.map(number => `#${number}`)
+  if (refs.length <= 1) {
+    return refs[0] ?? ''
+  }
+  if (refs.length === 2) {
+    return `${refs[0]} and ${refs[1]}`
+  }
+  return `${refs.slice(0, -1).join(', ')} and ${refs.at(-1)}`
 }
 
 // Drawn like a stack, with the top PR first and the base branch at the bottom.
