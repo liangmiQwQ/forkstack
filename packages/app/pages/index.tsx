@@ -220,7 +220,8 @@ function StackComment() {
         </p>
         <p>
           This PR is in a stack (2 of 3). Learn more about{' '}
-          <span className='text-sky-700 dark:text-sky-400'>stacked PRs</span>.
+          <span className='text-sky-700 dark:text-sky-400'>stacked PRs</span>. Maintainers:{' '}
+          <span className='text-sky-700 dark:text-sky-400'>merging and rebasing a stack</span>.
         </p>
         <ul className='flex list-disc flex-col gap-1 pl-5 marker:text-neutral-500'>
           {STACK.toReversed().map(pr => (

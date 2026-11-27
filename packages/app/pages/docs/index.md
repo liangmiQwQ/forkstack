@@ -23,22 +23,9 @@ For a stack of three PRs:
 
 ## For reviewers and maintainers
 
-You don't need to install anything. forkstack posts a comment on every PR in the stack, which:
+You don't need to install anything. The comment on each PR lists the stack and links to a diff of only that PR's changes. The stack page shows the live state, checks and review of each PR.
 
-- Lists the PRs in the stack, bottom to top, and marks the one you're on.
-- Shows the live state, checks and review of each PR.
-- Links to **Review only this PR's changes**, which opens GitHub's diff without the PRs below it.
-
-When reviewing:
-
-- Use the review link, so you only read the changes this PR adds.
-- Leave comments about a lower PR's changes on that PR. They'll be fixed there, and reach this PR on the next rebase.
-
-When merging:
-
-- Merge from the bottom, one PR at a time. Any merge method works.
-- After the bottom PR merges, forkstack rebases the rest of the stack onto `main` within a few minutes, so the next PR's diff only shows its own changes. Wait for that before merging the next one.
-- Don't merge a PR above an open one, or close one in the middle. forkstack can't tell where the rest of the stack should go then, and the contributor has to fix it by hand.
+Use that diff when you review, and leave comments about a lower PR on that PR. Merge from the bottom, one PR at a time, and wait for forkstack to rebase the rest onto `main` before merging the next. The [maintainers guide](/docs/maintainers) has the full steps, including which merge methods work and what breaks a stack.
 
 ## For contributors
 

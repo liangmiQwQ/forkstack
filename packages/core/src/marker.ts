@@ -5,6 +5,7 @@ export const MARKER = '<!-- forkstack'
 
 const SITE_URL = 'https://forkstack.dev'
 const STACK_DOCS_URL = `${SITE_URL}/docs`
+const MAINTAINERS_URL = `${SITE_URL}/docs/maintainers`
 
 // The comment is only rewritten when the stack's PRs change, so it only holds facts forkstack controls.
 // Live stack status and the rebase controls are on the stack page the "View stack" button links to.
@@ -14,7 +15,7 @@ export function renderComment(stackId: string, stack: PullRequest[], index: numb
   const merged = stack.every(pr => pr.state === 'MERGED')
 
   const body = [
-    `This PR is in a stack (${index + 1} of ${stack.length}). Learn more about [stacked PRs created with forkstack](${STACK_DOCS_URL}).`,
+    `This PR is in a stack (${index + 1} of ${stack.length}). Learn more about [stacked PRs created with forkstack](${STACK_DOCS_URL}). Maintainers: [merging and rebasing a stack](${MAINTAINERS_URL}).`,
     renderList(stack, index),
     ...(merged
       ? ['Every PR in this stack has merged.']
