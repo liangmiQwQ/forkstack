@@ -15,6 +15,13 @@
       "when": 1795702636899,
       "tag": "20261126141716_archived_at",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795794739092,
+      "tag": "20261127155219_github_login",
+      "breakpoints": true
     }
   ]
 }

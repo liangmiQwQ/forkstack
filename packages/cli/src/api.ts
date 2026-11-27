@@ -5,6 +5,8 @@ import { ghToken } from './gh.ts'
 
 export interface User {
   name: string
+  /** GitHub login, or `null` until the account signs in again after the field was added. */
+  login: string | null
 }
 
 export interface StackSummary {
