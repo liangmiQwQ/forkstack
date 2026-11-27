@@ -33,7 +33,7 @@ forkstack submit
 - Keep each branch one reviewable step. Commit each change to the branch it belongs to, not the top one.
 - The first own commit of a branch becomes its PR's title and description, so write it as one.
 - `forkstack submit` pushes every branch, opens the missing PRs, and links the stack. Run it again after any change. Add `--draft` for draft PRs.
-- After changing a lower branch, run `forkstack rebase` to replay the branches above it, then `forkstack submit`.
+- After changing a lower branch, run `forkstack rebase` to replay each branch above it onto the new one, then `forkstack submit`. Don't `git merge` the lower branch into the one above: edits that exist only in that merge can be lost when the stack is flattened.
 - After forkstack rebased the stack on GitHub, such as after a merge, run `forkstack sync` before changing anything. It pulls every branch, keeps local commits on top, pushes, and deletes merged branches.
 
 ## Commands
