@@ -97,14 +97,26 @@ function isOnPastHead<T extends Layer>(pr: T, other: T, own: Set<string>) {
   return !other.commits.includes(pr.headOid) && (other.pastHeads ?? []).some(oid => own.has(oid))
 }
 
-function walkChain<T>(root: T, children: Map<T, T[]>) {
+// When several branches sit above one layer, the one built on its current head is the stack.
+// Branches that only contain an older head are usually abandoned work, so they are left out.
+function childrenOnCurrentHead<T extends Layer>(parent: T, kids: T[]) {
+  if (kids.length <= 1) {
+    return kids
+  }
+  const onHead = kids.filter(kid => kid.commits.includes(parent.headOid))
+  return onHead.length === 1 ? onHead : kids
+}
+
+function walkChain<T extends Layer>(root: T, children: Map<T, T[]>) {
   const chain = [root]
 
   for (let next = children.get(root); next; next = children.get(chain.at(-1)!)) {
-    if (next.length > 1) {
+    // A leftover branch on an older head would otherwise split the layer and drop the whole stack.
+    const straight = childrenOnCurrentHead(chain.at(-1)!, next)
+    if (straight.length > 1) {
       return null
     }
-    chain.push(next[0])
+    chain.push(straight[0])
   }
 
   return chain.length >= 2 ? chain : null
