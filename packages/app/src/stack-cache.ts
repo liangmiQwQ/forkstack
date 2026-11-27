@@ -24,6 +24,7 @@ export async function cacheSavedPrs(userId: string, prs: PullRequest[]): Promise
 }
 
 export async function addCachedSavedPrs(userId: string, prs: PullRequest[]): Promise<void> {
-  const cached = (await readCachedSavedPrs(userId)) ?? []
+  const ids = new Set(prs.map(pr => pr.id))
+  const cached = ((await readCachedSavedPrs(userId)) ?? []).filter(pr => !ids.has(pr.id))
   await cacheSavedPrs(userId, [...cached, ...prs])
 }

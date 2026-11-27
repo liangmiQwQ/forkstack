@@ -5,11 +5,12 @@ import { env } from 'void/env'
 import { fetchPrs, searchOpenPrs } from './github.ts'
 import { addCachedSavedPrs } from './stack-cache.ts'
 import { markPrs, syncMarkers, unmarkPrs } from './stack-markers.ts'
-import { createStack, deleteStack, listStacks, removePrs } from './stack.ts'
+import { createStack, deleteStack, listStacks, removePrs, replaceStackPrs } from './stack.ts'
 import type { StoredStack } from './stack.ts'
 
 // Shared by the "Find stacks" page and the CLI's API, so both save stacks the same way.
-// Returns the new stack's ID, or `null` when GitHub doesn't show these PRs as a stack, in this order.
+// Returns the stack's ID, or `null` when GitHub doesn't show these PRs as a stack, in this order.
+// Adding a PR to a stack that is already saved keeps that stack's ID.
 export async function linkStack(
   userId: string,
   token: string,
@@ -17,11 +18,26 @@ export async function linkStack(
 ): Promise<string | null> {
   // The stack is found again from GitHub, so only the user's own PRs are saved, in the order their commits show.
   const [prs, saved] = await Promise.all([searchOpenPrs(token), listStacks(userId)])
-  const stack = excludeSaved(discoverStacks(prs), saved).find(
+  const stack = discoverStacks(prs).find(
     stack => stack.map(pr => pr.id).join(',') === prIds.join(',')
   )
   if (!stack) {
     return null
+  }
+
+  const overlapping = saved.filter(existing => sharesPr(existing, stack))
+  // A PR can only be in one stack. Two saved stacks claiming these PRs is left for the caller to sort out.
+  // An archived stack is a finished record, so a new group of PRs does not reopen it.
+  if (overlapping.length > 1 || (overlapping.length === 1 && overlapping[0].archivedAt)) {
+    return null
+  }
+
+  if (overlapping.length === 1) {
+    const existing = overlapping[0]
+    if (existing.prs.map(pr => pr.id).join(',') === prIds.join(',')) {
+      return existing.id
+    }
+    return extendStack(userId, existing, stack)
   }
 
   // The database is saved first, since it is the source of truth, then the markers go on GitHub.
@@ -30,6 +46,26 @@ export async function linkStack(
   // The dashboard renders the new stack from the cache before GitHub answers.
   await addCachedSavedPrs(userId, stack)
   return id
+}
+
+async function extendStack(
+  userId: string,
+  existing: StoredStack,
+  stack: PullRequest[]
+): Promise<string> {
+  const nextIds = new Set(stack.map(pr => pr.id))
+  const removed = existing.prs.filter(pr => !nextIds.has(pr.id))
+  // The row is updated, not deleted, so a failed marker write still leaves the original URL working.
+  await replaceStackPrs(existing, stack)
+  await unmarkPrs(removed)
+  await markPrs(stack, existing.id)
+  await addCachedSavedPrs(userId, stack)
+  return existing.id
+}
+
+function sharesPr(existing: StoredStack, stack: PullRequest[]) {
+  const ids = new Set(stack.map(pr => pr.id))
+  return existing.prs.some(pr => ids.has(pr.id))
 }
 
 // An archived stack's comments no longer link to forkstack, so they stay on the PRs as a record of the stack.

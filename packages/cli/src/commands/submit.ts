@@ -4,7 +4,7 @@ import type { PullRequest } from '@forkstack/core/discovery'
 import { define } from 'gunshi'
 import c from 'picocolors'
 
-import { createStack, deleteStack, getStack, listStacks } from '../api.ts'
+import { createStack, getStack, listStacks } from '../api.ts'
 import type { ApiError } from '../api.ts'
 import { COMMAND } from '../command.ts'
 import { currentBranch, git } from '../git.ts'
@@ -96,21 +96,22 @@ async function openPr(
   return createPr(remotes, base, branch.name, { title, body: body.join('\n').trim(), draft })
 }
 
-// A PR is in at most one stack, so a stack that shares PRs with this one is replaced, such as after a branch was added on top.
+// A PR is in at most one stack. Adding a branch updates that stack in place, so its URL stays the same.
+// The previous stack is not deleted first: if linking the new PR fails, the PRs that were already linked stay linked.
 async function linkStack(prIds: string[], opened: boolean) {
   const linked = (await listStacks()).find(stack => stack.prIds.some(id => prIds.includes(id)))
   if (linked?.prIds.join(',') === prIds.join(',')) {
     console.log('The stack is linked on forkstack already.')
     return
   }
-  if (linked) {
-    await deleteStack(linked.id)
-  }
 
   for (let attempt = 1; ; attempt++) {
     try {
-      await createStack(prIds)
-      console.log(c.green('Linked the stack on forkstack.'))
+      const id = await createStack(prIds)
+      const updated = linked?.id === id
+      console.log(
+        c.green(updated ? 'Updated the stack on forkstack.' : 'Linked the stack on forkstack.')
+      )
       return
     } catch (error) {
       if (!opened || attempt === SEARCH_RETRIES || (error as ApiError).status !== 409) {

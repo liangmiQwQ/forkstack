@@ -60,6 +60,23 @@ export async function createStack(userId: string, prs: PullRequest[]): Promise<s
   return id
 }
 
+// Rewrites which PRs belong to a stack without changing its id, so links to it keep working.
+// Comment ids of PRs that stay are kept. New PRs have none until a marker is posted.
+export async function replaceStackPrs(stack: StoredStack, prs: PullRequest[]): Promise<void> {
+  const commentIds = new Map(stack.prs.map(pr => [pr.id, pr.commentId]))
+  const rows = prs.map((pr, position) => ({
+    prId: pr.id,
+    stackId: stack.id,
+    position,
+    commentId: commentIds.get(pr.id) ?? null
+  }))
+
+  await db.batch([
+    db.delete(stackPrTable).where(eq(stackPrTable.stackId, stack.id)),
+    db.insert(stackPrTable).values(rows)
+  ])
+}
+
 export async function deleteStack(id: string): Promise<void> {
   await db.delete(stackTable).where(eq(stackTable.id, id))
 }
