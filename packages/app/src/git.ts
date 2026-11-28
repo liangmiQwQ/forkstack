@@ -2,11 +2,13 @@ import { graphql } from '@octokit/graphql'
 import { request } from '@octokit/request'
 import { RequestError } from '@octokit/request-error'
 
+import type { CommitFields, GitPerson } from './commit-object.ts'
+
 export interface Commit {
   oid: string
   tree: string
   message: string
-  author: { name: string; email: string; date: string }
+  author: GitPerson
 }
 
 export interface RefUpdate {
@@ -48,6 +50,25 @@ export function createGit(token: string, repo: string) {
         author
       })
       return data.sha
+    },
+
+    // GitHub checks the signature while it stores the commit, so the response already says whether it is verified.
+    async createSignedCommit(
+      commit: CommitFields,
+      signature: string
+    ): Promise<{ sha: string } | { unverified: string }> {
+      const { data } = await api('POST /repos/{owner}/{repo}/git/commits', {
+        ...target,
+        tree: commit.tree,
+        parents: [commit.parent],
+        message: commit.message,
+        author: commit.author,
+        committer: commit.committer,
+        signature
+      })
+      return data.verification.verified
+        ? { sha: data.sha }
+        : { unverified: data.verification.reason }
     },
 
     async createBranch(ref: string, oid: string): Promise<void> {

@@ -71,6 +71,14 @@ forkstack sync
 
 It pulls each branch from your fork and replays any commits you made locally on top. Then it rebases the stack like `forkstack rebase`, pushes the branches that differ from your fork, and deletes the branches whose PRs merged. When a branch conflicts while pulling, resolve it, run `git rebase --continue`, then run `forkstack sync` again.
 
+## Signed commits
+
+A rebase on GitHub writes new commits, which drops their signatures. To keep them Verified, open [Settings](/settings/signing) and generate a signing key, then add its public key to your GitHub account as a [GPG key](https://github.com/settings/gpg/new). forkstack signs every later rebase of your stacks with it, including one a maintainer starts or one after a merge. Each commit keeps its author, and you become its committer, with the email you picked for the key. GitHub only verifies the signature when that email is verified on your account.
+
+Without a key, a rebase on GitHub stops when your stack has verified commits or the base branch requires signed commits. Add a key, or run `forkstack rebase`, which signs with your own git setup. Otherwise it goes ahead unsigned.
+
+forkstack keeps the private key encrypted on its server and never shows it. Delete it in Settings at any time, and remove it on GitHub too.
+
 ## Commands
 
 | Command                                          | What it does                                                                            |

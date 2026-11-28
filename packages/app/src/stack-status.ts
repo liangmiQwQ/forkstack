@@ -3,7 +3,7 @@ import { env } from 'void/env'
 import { kv } from 'void/kv'
 
 import { fetchPrs } from './github.ts'
-import { readRebaseOptions } from './restack.ts'
+import { checkSigningKey, readRebaseOptions } from './restack.ts'
 import type { RebaseOptions } from './restack.ts'
 import { getStack } from './stack.ts'
 import type { StoredStack } from './stack.ts'
@@ -31,8 +31,11 @@ export function fetchStackPrs(stackId: string): Promise<PullRequest[] | null> {
 }
 
 // Only for showing the state: starting a rebase reads GitHub again, since a cached state may be a minute old.
-export function fetchRebaseOptions(stack: StoredStack): Promise<RebaseOptions> {
-  return readThrough(optionsByStack, stack.id, () => readRebaseOptions(stack.prs.map(pr => pr.id)))
+export async function fetchRebaseOptions(stack: StoredStack): Promise<RebaseOptions> {
+  const options = await readThrough(optionsByStack, stack.id, () =>
+    readRebaseOptions(stack.prs.map(pr => pr.id))
+  )
+  return checkSigningKey(options, stack.userId)
 }
 
 // Called whenever forkstack learns the branches moved.

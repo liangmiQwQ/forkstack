@@ -122,12 +122,24 @@ const RESTACK_QUERY = /* GraphQL */ `
           target {
             oid
           }
+          # Either one can require signed commits. The bot sees rulesets, and classic protection only when it may.
+          branchProtectionRule {
+            requiresCommitSignatures
+          }
+          rules(first: 100) {
+            nodes {
+              type
+            }
+          }
         }
         commits(first: 250) {
           totalCount
           nodes {
             commit {
               oid
+              signature {
+                isValid
+              }
               # A third parent tells an octopus merge apart from a merge of the parent.
               parents(first: 3) {
                 nodes {
@@ -248,10 +260,20 @@ interface RestackNode {
   headRefName: string
   headRefOid: string
   headRepository: { id: string; nameWithOwner: string } | null
-  baseRef: { target: { oid: string } } | null
+  baseRef: {
+    target: { oid: string }
+    branchProtectionRule: { requiresCommitSignatures: boolean } | null
+    rules: { nodes: { type: string }[] }
+  } | null
   commits: {
     totalCount: number
-    nodes: { commit: { oid: string; parents: { nodes: { oid: string }[] } } }[]
+    nodes: {
+      commit: {
+        oid: string
+        signature: { isValid: boolean } | null
+        parents: { nodes: { oid: string }[] }
+      }
+    }[]
   }
   timelineItems: { nodes: { beforeCommit?: { oid: string } | null }[] }
 }
@@ -267,6 +289,8 @@ export interface RestackState {
   merged: number
   /** The stack's layers, bottom to top. */
   layers: LayerState[]
+  /** An open PR has a verified commit, or the base branch requires signed commits, so an unsigned rebase would lose something. */
+  needsSignature: boolean
 }
 
 export interface MaintainerEdits {
@@ -380,7 +404,9 @@ export async function fetchRestackState(
     repositoryId: bottom.headRepository.id,
     mainOid: bottom.baseRef.target.oid,
     merged,
-    layers: stack.map(node => toLayerState(node!))
+    layers: stack.map(node => toLayerState(node!)),
+    needsSignature:
+      requiresSignatures(bottom.baseRef) || stack.some(node => hasVerifiedCommit(node!))
   }
 }
 
@@ -465,6 +491,18 @@ function toPullRequest(node: PullRequestNode): PullRequest {
     comments: node.comments.totalCount,
     checks: toChecks(node.lastCommit.nodes[0]?.commit.statusCheckRollup?.state)
   }
+}
+
+function requiresSignatures(baseRef: NonNullable<RestackNode['baseRef']>) {
+  return (
+    baseRef.branchProtectionRule?.requiresCommitSignatures === true ||
+    baseRef.rules.nodes.some(rule => rule.type === 'REQUIRED_SIGNATURES')
+  )
+}
+
+// Merged PRs are not replayed, so their signatures can't be lost.
+function hasVerifiedCommit(node: RestackNode) {
+  return node.state === 'OPEN' && node.commits.nodes.some(({ commit }) => commit.signature?.isValid)
 }
 
 function toLayerState(node: RestackNode): LayerState {

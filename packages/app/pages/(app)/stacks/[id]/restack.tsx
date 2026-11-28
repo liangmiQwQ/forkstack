@@ -129,8 +129,8 @@ function RebaseHeader({ stackId }: Pick<Props, 'stackId'>) {
       <h1 className='text-2xl font-semibold'>Rebase stack</h1>
       <p className='max-w-2xl text-sm text-neutral-500'>
         forkstack replays each pull request&apos;s own commits onto the new head of the one below
-        it, then force-pushes every branch that changed at once. Checks run again on those pull
-        requests.
+        it, then force-pushes every branch that changed at once. When the author has a signing key,
+        the new commits are signed with it. Checks run again on those pull requests.
       </p>
     </header>
   )
@@ -339,6 +339,43 @@ function StatusNotice({
             </>
           ) : (
             'Ask the author to install it, then try again.'
+          )}
+        </Notice>
+      )
+    }
+    case 'needs-signature': {
+      return (
+        <Notice icon='i-lucide-key-round'>
+          This stack has verified commits, or its base branch requires signed commits, so forkstack
+          didn&apos;t rewrite them unsigned. No branch was changed.{' '}
+          {installUrl ? (
+            <>
+              <Link href='/settings/signing' className='underline'>
+                Add a signing key
+              </Link>
+              , or rebase locally with <code className='font-mono'>forkstack rebase</code>.
+            </>
+          ) : (
+            'Ask the author to add a signing key or to rebase locally.'
+          )}
+        </Notice>
+      )
+    }
+    case 'unverified': {
+      return (
+        <Notice icon='i-lucide-shield-alert'>
+          GitHub didn&apos;t verify the signed commits (
+          <code className='font-mono'>{status.reason}</code>), so no branch was changed.{' '}
+          {installUrl ? (
+            <>
+              Check that the public key from{' '}
+              <Link href='/settings/signing' className='underline'>
+                your signing key
+              </Link>{' '}
+              is added to your GitHub account, then try again.
+            </>
+          ) : (
+            'Ask the author to check their signing key on GitHub.'
           )}
         </Notice>
       )

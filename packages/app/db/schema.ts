@@ -39,3 +39,18 @@ export const stackPrTable = sqliteTable(
   },
   table => [index('stack_pr_stackId_idx').on(table.stackId)]
 )
+
+// One key per user, for signing the commits a web rebase rewrites. GitHub matches the signature to the committer email.
+export const signingKeyTable = sqliteTable('signing_key', {
+  userId: text('userId')
+    .primaryKey()
+    .references(() => userTable.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  publicKey: text('publicKey').notNull(),
+  // Armored and locked with SIGNING_KEY_SECRET as its passphrase, so the database alone can't sign.
+  privateKey: text('privateKey').notNull(),
+  createdAt: integer('createdAt', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date())
+})
