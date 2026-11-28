@@ -7,6 +7,8 @@ import type { Props } from './account.server.ts'
 export default function AccountSettingsPage({ profile, scopes }: Props) {
   const signOutForm = useForm('/settings/account?signOut', {})
   const deleteForm = useForm('/settings/account?deleteAccount', {}, { throwOnError: false })
+  // Without a login the first line already shows the name, so only the email is left here.
+  const detail = [profile.login && profile.name, profile.email].filter(Boolean).join(' · ')
 
   return (
     <div className='flex flex-col gap-6'>
@@ -21,10 +23,11 @@ export default function AccountSettingsPage({ profile, scopes }: Props) {
           )}
           <div className='flex min-w-0 flex-col'>
             <span className='font-medium'>{formatIdentity(profile.login, profile.name)}</span>
-            {profile.login && profile.name && (
-              <span className='truncate text-sm text-neutral-500'>{profile.name}</span>
+            {detail && (
+              <span className='truncate text-sm text-neutral-500' title={detail}>
+                {detail}
+              </span>
             )}
-            <span className='truncate text-sm text-neutral-500'>{profile.email}</span>
           </div>
         </div>
       </Section>
