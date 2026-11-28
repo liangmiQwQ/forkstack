@@ -5,7 +5,7 @@ import { defer, defineHandler, defineHead } from 'void'
 import type { InferProps } from 'void'
 import { requireAuth } from 'void/auth'
 
-import { getGithubToken, hasCurrentGrant } from '../../../src/account.ts'
+import { getGithubToken } from '../../../src/account.ts'
 import { keepAdminStacks } from '../../../src/fork-admin.ts'
 import { searchOpenPrs } from '../../../src/github.ts'
 import { cacheStacks, readCachedStacks } from '../../../src/stack-cache.ts'
@@ -31,14 +31,9 @@ export const loader = defineHandler(async c => {
     savedPromise
   ]).then(([token, prs, saved]) => keepAdminStacks(token, excludeSaved(discoverStacks(prs), saved)))
 
-  const [saved, cachedStacks, currentGrant] = await Promise.all([
-    savedPromise,
-    readCachedStacks(user.id),
-    hasCurrentGrant(user.id)
-  ])
+  const [saved, cachedStacks] = await Promise.all([savedPromise, readCachedStacks(user.id)])
 
   return {
-    needsReauthorize: !currentGrant,
     // Stacks from the last visit fill the first screen while GitHub answers.
     cachedStacks: cachedStacks && excludeSaved(cachedStacks, saved),
     stacks: defer(async () => {

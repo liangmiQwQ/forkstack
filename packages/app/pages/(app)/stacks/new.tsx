@@ -2,7 +2,6 @@ import type { PullRequest } from '@forkstack/core/discovery'
 import { Form, Link, useForm } from '@void/react'
 import { Suspense, use, useState } from 'react'
 
-import { ReauthorizeButton } from '../../../src/components/reauthorize.tsx'
 import {
   PendingIcon,
   PrStateIcon,
@@ -18,7 +17,7 @@ interface Candidate {
   index: number
 }
 
-export default function NewStackPage({ cachedStacks, stacks, managed, needsReauthorize }: Props) {
+export default function NewStackPage({ cachedStacks, stacks, managed }: Props) {
   const [query, setQuery] = useState('')
 
   return (
@@ -35,19 +34,6 @@ export default function NewStackPage({ cachedStacks, stacks, managed, needsReaut
           webhook to the fork so forkstack sees new commits.
         </p>
       </header>
-
-      {needsReauthorize && (
-        <section className='card flex flex-col gap-3 px-4 py-3 text-sm'>
-          <p className='flex items-start gap-3'>
-            <span className='i-lucide-webhook mt-0.5 shrink-0 text-neutral-500' />
-            <span>
-              forkstack now adds a push webhook to the fork of each stack you link, and pushes
-              rebases that update workflow files. Reauthorize it with GitHub to grant both.
-            </span>
-          </p>
-          <ReauthorizeButton callbackURL='/stacks/new' />
-        </section>
-      )}
 
       <div className='flex flex-wrap items-center gap-x-4 gap-y-2'>
         <label className='input flex-1'>

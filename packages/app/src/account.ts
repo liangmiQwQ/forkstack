@@ -9,20 +9,11 @@ import { env } from 'void/env'
 // The secret Void gives Better Auth in development, when BETTER_AUTH_SECRET is unset.
 const DEV_AUTH_SECRET = 'void-dev-better-auth-secret-1234567890'
 
-// The scopes `auth.ts` asks for, beyond `public_repo`. Each entry lists the scopes that grant it, since `admin:repo_hook` includes `write:repo_hook`.
-const CURRENT_SCOPES = [['write:repo_hook', 'admin:repo_hook'], ['workflow']]
-
 export async function getGithubScopes(userId: string): Promise<string[]> {
   const account = await findGithubAccount(userId)
 
   // Better Auth stores granted scopes as a comma-separated string.
   return account?.scope?.split(',').filter(Boolean) ?? []
-}
-
-// Grants from before forkstack asked for a scope lack it until the user reauthorizes.
-export async function hasCurrentGrant(userId: string): Promise<boolean> {
-  const scopes = await getGithubScopes(userId)
-  return CURRENT_SCOPES.every(options => options.some(scope => scopes.includes(scope)))
 }
 
 // Better Auth stores the GitHub user ID as the account ID, as a string.

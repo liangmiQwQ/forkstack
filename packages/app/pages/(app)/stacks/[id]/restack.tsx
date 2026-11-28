@@ -54,7 +54,6 @@ function RebaseView({
   status,
   running,
   isAuthor,
-  needsReauthorize,
   github
 }: ViewProps & { github?: GitHubData }) {
   const prs = github?.prs
@@ -64,15 +63,6 @@ function RebaseView({
     <div className='flex flex-col gap-6'>
       <RebaseHeader stackId={stackId} />
 
-      {needsReauthorize && (
-        <Notice icon='i-lucide-key-round'>
-          <span className='flex flex-col gap-3'>
-            forkstack needs permission to push rebases that update workflow files. Reauthorize it
-            with GitHub, or a rebase onto a base that changed them fails.
-            <ReauthorizeButton callbackURL={`/stacks/${stackId}/restack`} />
-          </span>
-        </Notice>
-      )}
       {options?.problem && <Notice icon='i-lucide-circle-alert'>{options.problem}</Notice>}
       {options && !options.problem && !options.onMain && (
         <Notice icon='i-lucide-circle-check'>This stack is up to date.</Notice>

@@ -4,7 +4,7 @@ import type { CloudContext, InferProps } from 'void'
 import { requireAuth } from 'void/auth'
 import type { PageParams } from 'void/routes'
 
-import { getGithubToken, hasCurrentGrant } from '../../../../src/account.ts'
+import { getGithubToken } from '../../../../src/account.ts'
 import { fetchPrs } from '../../../../src/github.ts'
 import { findRebasableStack } from '../../../../src/rebase-access.ts'
 import { readRestackStatus, requestRestack } from '../../../../src/restack-job.ts'
@@ -23,11 +23,9 @@ export const loader = defineHandler(async c => {
   const stack = await findRebasableStack(c, user.id, stackId)
 
   // A missing GitHub sign-in sends a 401, so it is checked before the page starts streaming.
-  const isAuthor = user.id === stack.userId
-  const [token, status, currentGrant] = await Promise.all([
+  const [token, status] = await Promise.all([
     getGithubToken(c, user.id),
-    readRestackStatus(stack.id),
-    isAuthor ? hasCurrentGrant(user.id) : true
+    readRestackStatus(stack.id)
   ])
 
   return {
@@ -51,9 +49,7 @@ export const loader = defineHandler(async c => {
       return { prs, options }
     }),
     // Only the author can fix their GitHub grant or signing key, so a maintainer is told to ask them.
-    isAuthor,
-    // A rebase onto a base that changed workflow files fails without the `workflow` scope.
-    needsReauthorize: !currentGrant
+    isAuthor: user.id === stack.userId
   }
 })
 

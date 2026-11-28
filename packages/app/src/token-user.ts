@@ -3,7 +3,7 @@ import { request } from '@octokit/request'
 import { RequestError } from '@octokit/request-error'
 import { HTTPException } from 'hono/http-exception'
 import type { CloudContext } from 'void'
-import { and, db, eq } from 'void/db'
+import { and, db, eq, isNotNull } from 'void/db'
 import { kv } from 'void/kv'
 
 import { sha256 } from './hash.ts'
@@ -35,10 +35,17 @@ export async function requireTokenUser(c: CloudContext): Promise<TokenUser> {
   }
 
   // Users sign in on the web once with `forkstack login`, which grants the OAuth access restacks and push webhooks use.
+  // An account without a stored grant was signed out, so `forkstack login` signs in on the web again.
   const account = await db
     .select({ userId: accountTable.userId })
     .from(accountTable)
-    .where(and(eq(accountTable.providerId, 'github'), eq(accountTable.accountId, githubId)))
+    .where(
+      and(
+        eq(accountTable.providerId, 'github'),
+        eq(accountTable.accountId, githubId),
+        isNotNull(accountTable.accessToken)
+      )
+    )
     .get()
   if (!account) {
     throw new HTTPException(403, {

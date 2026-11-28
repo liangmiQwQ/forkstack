@@ -3,10 +3,7 @@ import { RequestError } from '@octokit/request-error'
 import { HTTPException } from 'hono/http-exception'
 import { env } from 'void/env'
 
-import { getGithubScopes, readGithubToken } from './account.ts'
-
-// `admin:repo_hook` includes `write:repo_hook`.
-const HOOK_SCOPES = new Set(['write:repo_hook', 'admin:repo_hook'])
+import { readGithubToken } from './account.ts'
 
 interface Hook {
   id: number
@@ -15,28 +12,20 @@ interface Hook {
   config: { url?: string; content_type?: string; secret?: string }
 }
 
-// The page forkstack sends users to when their GitHub grant is missing the hook scope. It offers to reauthorize.
-const REAUTHORIZE_PATH = '/stacks/new'
-
-async function canAddHooks(userId: string): Promise<boolean> {
-  const scopes = await getGithubScopes(userId)
-  return scopes.some(scope => HOOK_SCOPES.has(scope))
-}
-
 // A push to a stack branch clears the stack's cached status, so the hook must exist before the stack is linked.
 // The hook is added with the user's OAuth grant, also when the CLI links the stack with the token of `gh`.
 export async function requirePushHook(userId: string, fork: string, origin: string): Promise<void> {
   const token = await readGithubToken(userId)
-  if (!token || !(await canAddHooks(userId))) {
-    throw reauthorizeError(fork, origin)
+  if (!token) {
+    throw signInAgainError(fork)
   }
 
   try {
     await ensurePushHook(token, fork, `${origin}/webhooks/github`)
   } catch (error) {
-    // GitHub answers 404 when the grant lacks the scope, and 401 once it is revoked.
+    // GitHub answers 401 once the grant is revoked, and 403 or 404 when it no longer covers the fork.
     if (error instanceof RequestError && [401, 403, 404].includes(error.status)) {
-      throw reauthorizeError(fork, origin)
+      throw signInAgainError(fork)
     }
     throw new HTTPException(503, {
       message: `GitHub didn't answer while forkstack added a push webhook to ${fork}. Try again in a moment.`
@@ -112,8 +101,8 @@ function hookConfig(url: string) {
   return { url, content_type: 'json', secret: env.GITHUB_WEBHOOK_SECRET, insecure_ssl: '0' }
 }
 
-function reauthorizeError(fork: string, origin: string) {
+function signInAgainError(fork: string) {
   return new HTTPException(403, {
-    message: `forkstack needs your permission to add a push webhook to ${fork}. Reauthorize forkstack with GitHub at ${origin}${REAUTHORIZE_PATH}, then try again.`
+    message: `GitHub didn't let forkstack add a push webhook to ${fork} with your sign-in. Sign out of forkstack, sign in again, then try again.`
   })
 }
