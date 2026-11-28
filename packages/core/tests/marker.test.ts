@@ -19,7 +19,7 @@ it('lists the stack top first, above its base branch', () => {
 
   const comment = renderComment('stack', stack, 1)
 
-  expect(comment).toContain('> - #3\n> - #2 (this PR)\n> - #1\n> - `main`')
+  expect(comment).toContain('> - #3\n> - #2 **(this PR)**\n> - #1\n> - `main`')
 })
 
 it('marks the lowest open PR as next to merge', () => {
