@@ -25,7 +25,7 @@ Or install it from npm, and run it as `forkstack`:
 npm install -g forkstack
 ```
 
-Then sign in to forkstack once. It opens forkstack.dev in your browser, where you sign in with the same GitHub account as `gh` and install the forkstack GitHub App on your forks. forkstack keeps using the token of `gh`, so it stores nothing on your machine.
+Then sign in to forkstack once. It opens forkstack.dev in your browser, where you sign in with the same GitHub account as `gh`. forkstack asks GitHub for access to your public repositories, to push rebases as you, and to add a push webhook to the forks you link. The CLI keeps using the token of `gh`, so it stores nothing on your machine.
 
 ```sh
 forkstack login
@@ -46,6 +46,8 @@ forkstack submit
 ```
 
 `submit` pushes every branch to your fork with `--force-with-lease`, so it never overwrites commits pushed from elsewhere. It opens an upstream PR for each branch that has none, titled and described by the branch's first own commit, then links the stack. Pass `--draft` to open new PRs as drafts.
+
+forkstack links a stack only from a fork you have admin access to, such as one under your own GitHub account, since it adds a push webhook there to see your pushes.
 
 Run `submit` again after adding a branch on top, or after changing any branch. `submit` refuses a single branch, unless it builds on the top PR of a stack you linked before, such as when the lower branches live on another machine.
 

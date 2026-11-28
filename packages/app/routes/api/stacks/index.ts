@@ -19,7 +19,7 @@ export const GET = defineHandler(async c => {
 
 export const POST = defineHandler.withValidator({ body: BODY })(async (c, { body }) => {
   const { userId, token } = await requireTokenUser(c)
-  const id = await linkStack(userId, token, body.prIds)
+  const id = await linkStack(userId, token, body.prIds, new URL(c.req.url).origin)
   if (!id) {
     throw new HTTPException(409, {
       message: 'GitHub does not show these PRs as one stack, or one is in another stack already.'

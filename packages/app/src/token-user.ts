@@ -34,7 +34,7 @@ export async function requireTokenUser(c: CloudContext): Promise<TokenUser> {
     throw new HTTPException(401, { message: 'This GitHub token is not valid.' })
   }
 
-  // Users sign in on the web once with `forkstack login`, which is also where they install the GitHub App on their fork.
+  // Users sign in on the web once with `forkstack login`, which grants the OAuth access restacks and push webhooks use.
   const account = await db
     .select({ userId: accountTable.userId })
     .from(accountTable)

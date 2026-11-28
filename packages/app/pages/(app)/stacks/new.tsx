@@ -2,6 +2,7 @@ import type { PullRequest } from '@forkstack/core/discovery'
 import { Form, Link, useForm } from '@void/react'
 import { Suspense, use, useState } from 'react'
 
+import { ReauthorizeButton } from '../../../src/components/reauthorize.tsx'
 import {
   PendingIcon,
   PrStateIcon,
@@ -17,7 +18,7 @@ interface Candidate {
   index: number
 }
 
-export default function NewStackPage({ cachedStacks, stacks, managed }: Props) {
+export default function NewStackPage({ cachedStacks, stacks, managed, needsReauthorize }: Props) {
   const [query, setQuery] = useState('')
 
   return (
@@ -29,11 +30,24 @@ export default function NewStackPage({ cachedStacks, stacks, managed }: Props) {
         </Link>
         <h1 className='text-2xl font-semibold'>Link a stack</h1>
         <p className='max-w-2xl text-sm text-neutral-500'>
-          forkstack found these open pull requests from your forks, each built on the one below it.
-          Linking a stack adds a forkstack comment to each pull request. Nothing else changes on
-          GitHub.
+          forkstack found these open pull requests from forks you administer, each built on the one
+          below it. Linking a stack adds a forkstack comment to each pull request, and a push
+          webhook to the fork so forkstack sees new commits.
         </p>
       </header>
+
+      {needsReauthorize && (
+        <section className='card flex flex-col gap-3 px-4 py-3 text-sm'>
+          <p className='flex items-start gap-3'>
+            <span className='i-lucide-webhook mt-0.5 shrink-0 text-neutral-500' />
+            <span>
+              forkstack now adds a push webhook to the fork of each stack you link. Reauthorize it
+              with GitHub to grant that permission.
+            </span>
+          </p>
+          <ReauthorizeButton callbackURL='/stacks/new' />
+        </section>
+      )}
 
       <div className='flex flex-wrap items-center gap-x-4 gap-y-2'>
         <label className='input flex-1'>
@@ -205,8 +219,8 @@ function EmptyState() {
       <span className='i-lucide-layers text-3xl text-neutral-500' />
       <h2 className='font-medium'>No stacks to link</h2>
       <p className='max-w-sm text-sm text-neutral-500'>
-        Open pull requests from one fork into the same branch, each built on the one below it, and
-        they show up here.
+        Open pull requests from one fork you administer into the same branch, each built on the one
+        below it, and they show up here.
       </p>
       <a href='https://github.com/pulls' target='_blank' rel='noreferrer' className='btn-soft mt-2'>
         <span className='i-simple-icons-github' />

@@ -2,7 +2,6 @@ import * as v from 'valibot'
 import { defer, defineHandler, defineHead } from 'void'
 import type { CloudContext, InferProps } from 'void'
 import { requireAuth } from 'void/auth'
-import { env } from 'void/env'
 import type { PageParams } from 'void/routes'
 
 import { getGithubToken } from '../../../../src/account.ts'
@@ -49,11 +48,8 @@ export const loader = defineHandler(async c => {
       ])
       return { prs, options }
     }),
-    // Only the author can install the GitHub App on their fork, so a maintainer gets no link.
-    installUrl:
-      user.id === stack.userId
-        ? `https://github.com/apps/${env.GITHUB_APP_SLUG}/installations/new`
-        : null
+    // Only the author can fix their GitHub grant or signing key, so a maintainer is told to ask them.
+    isAuthor: user.id === stack.userId
   }
 })
 

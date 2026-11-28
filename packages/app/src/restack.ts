@@ -1,12 +1,12 @@
 import { planLayers, rebaseTargets } from '@forkstack/core/restack-plan'
 import type { LayerPlan } from '@forkstack/core/restack-plan'
+import { RequestError } from '@octokit/request-error'
 import { env } from 'void/env'
 
-import { getGithubId } from './account.ts'
+import { readGithubToken } from './account.ts'
 import { createGit } from './git.ts'
 import type { Git, RefUpdate } from './git.ts'
-import { canPush, getRepoToken } from './github-app.ts'
-import { fetchRestackState } from './github.ts'
+import { fetchRestackState, fetchViewerPermission } from './github.ts'
 import { replayLayer } from './replay.ts'
 import { findSigningKey, loadSigner } from './signing-key.ts'
 import type { Signer } from './signing.ts'
@@ -18,7 +18,7 @@ export type RestackResult =
   | { state: 'diverged'; prId: string; merge: string }
   | { state: 'unsupported' }
   | { state: 'too-large'; commits: number }
-  | { state: 'not-installed'; repo: string }
+  | { state: 'signed-out' }
   | { state: 'no-access'; repo: string }
   | { state: 'needs-signature' }
   | { state: 'unverified'; reason: string }
@@ -26,8 +26,10 @@ export type RestackResult =
 // Each replayed commit costs about five GitHub requests, and a Worker invocation can only make so many.
 const MAX_COMMITS = 100
 
-async function inspectRestack(prIds: string[]) {
-  const state = await fetchRestackState(env.GITHUB_BOT_TOKEN, prIds)
+const PUSH_PERMISSIONS = new Set(['WRITE', 'MAINTAIN', 'ADMIN'])
+
+async function inspectRestack(token: string, prIds: string[]) {
+  const state = await fetchRestackState(token, prIds)
   if (!state) {
     return { state: 'unsupported' } as const
   }
@@ -49,8 +51,9 @@ async function inspectRestack(prIds: string[]) {
 
 export type RebaseOptions = Awaited<ReturnType<typeof readRebaseOptions>>
 
+// Anyone viewing the stack reads the options, so the bot reads GitHub for them.
 export async function readRebaseOptions(prIds: string[]) {
-  const plan = await inspectRestack(prIds)
+  const plan = await inspectRestack(env.GITHUB_BOT_TOKEN, prIds)
   if (plan.state === 'ready') {
     return { ...plan.targets, needsSignature: plan.stack.needsSignature, problem: null }
   }
@@ -79,13 +82,36 @@ export async function checkSigningKey(
 }
 
 // Read GitHub again when the queued job runs; a branch can move after the request.
-// The stack owner's key signs, even when a maintainer or a merge started the rebase, so the new commits stay the author's.
+// The whole rebase runs with the stack owner's OAuth grant and key, even when a maintainer or a merge started it.
+// GitHub then attributes the pushes to the author, so upstream applies its usual workflow approval policy to them.
 export async function restack(
   prIds: string[],
   onMain: boolean,
   ownerId: string
 ): Promise<RestackResult> {
-  const plan = await inspectRestack(prIds)
+  const token = await readGithubToken(ownerId)
+  if (!token) {
+    return { state: 'signed-out' }
+  }
+
+  try {
+    return await restackAs(token, prIds, onMain, ownerId)
+  } catch (error) {
+    // GitHub answers 401 once the owner revokes forkstack's grant.
+    if (error instanceof RequestError && error.status === 401) {
+      return { state: 'signed-out' }
+    }
+    throw error
+  }
+}
+
+async function restackAs(
+  token: string,
+  prIds: string[],
+  onMain: boolean,
+  ownerId: string
+): Promise<RestackResult> {
+  const plan = await inspectRestack(token, prIds)
   if (plan.state !== 'ready') {
     return plan
   }
@@ -106,13 +132,8 @@ export async function restack(
   }
 
   // 2. Replay the commits in the fork, on a scratch branch the merge API can work on
-  const token = await getRepoToken(state.repo)
-  if (!token) {
-    return { state: 'not-installed', repo: state.repo }
-  }
   // Checked when the job runs, since the owner may have lost access after saving the stack.
-  const githubId = await getGithubId(ownerId)
-  if (!githubId || !(await canPush(token, state.repo, githubId))) {
+  if (!PUSH_PERMISSIONS.has((await fetchViewerPermission(token, state.repo)) ?? '')) {
     return { state: 'no-access', repo: state.repo }
   }
 

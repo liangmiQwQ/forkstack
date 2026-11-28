@@ -56,6 +56,6 @@ You can start the same rebase from the stack page, after signing in to forkstack
 - You have write access to the upstream repository.
 - Every open PR in the stack has "Allow edits by maintainers" on. GitHub doesn't offer it on forks owned by an organization, so those stacks stay with the author.
 
-forkstack's GitHub App on the author's fork then replays the commits and force-pushes the branches, as it does when the author clicks. Your GitHub sign-in is only used to check your access, never to push. Otherwise, ask the author to rebase.
+forkstack then replays the commits and force-pushes the branches with the author's GitHub sign-in, as it does when the author clicks. GitHub shows the pushes as the author's, so your repository's workflow approval rules apply as usual. Your GitHub sign-in is only used to check your access, never to push. Otherwise, ask the author to rebase.
 
 If the stack has verified commits or the base branch requires signed commits, a web rebase stops when the stack author has no signing key. The author can then add a key or run `forkstack rebase`.
