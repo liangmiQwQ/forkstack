@@ -2,9 +2,10 @@ import { planLayers, rebaseTargets } from '@forkstack/core/restack-plan'
 import type { LayerPlan } from '@forkstack/core/restack-plan'
 import { env } from 'void/env'
 
+import { getGithubId } from './account.ts'
 import { createGit } from './git.ts'
 import type { Git, RefUpdate } from './git.ts'
-import { getRepoToken } from './github-app.ts'
+import { canPush, getRepoToken } from './github-app.ts'
 import { fetchRestackState } from './github.ts'
 import { replayLayer } from './replay.ts'
 import { findSigningKey, loadSigner } from './signing-key.ts'
@@ -18,6 +19,7 @@ export type RestackResult =
   | { state: 'unsupported' }
   | { state: 'too-large'; commits: number }
   | { state: 'not-installed'; repo: string }
+  | { state: 'no-access'; repo: string }
   | { state: 'needs-signature' }
   | { state: 'unverified'; reason: string }
 
@@ -107,6 +109,11 @@ export async function restack(
   const token = await getRepoToken(state.repo)
   if (!token) {
     return { state: 'not-installed', repo: state.repo }
+  }
+  // Checked when the job runs, since the owner may have lost access after saving the stack.
+  const githubId = await getGithubId(ownerId)
+  if (!githubId || !(await canPush(token, state.repo, githubId))) {
+    return { state: 'no-access', repo: state.repo }
   }
 
   const git = createGit(token, state.repo)

@@ -46,6 +46,9 @@ export function describeStack(
     case 'diverged': {
       return problem(`#${number(status.prId)} needs a local rebase`)
     }
+    case 'no-access': {
+      return problem('Author lost push access')
+    }
     case 'needs-signature': {
       return problem('Needs a signing key')
     }

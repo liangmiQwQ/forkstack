@@ -11,6 +11,11 @@ export async function getGithubScopes(userId: string): Promise<string[]> {
   return account?.scope?.split(',').filter(Boolean) ?? []
 }
 
+// Better Auth stores the GitHub user ID as the account ID, as a string.
+export async function getGithubId(userId: string): Promise<string | null> {
+  return (await findGithubAccount(userId))?.accountId ?? null
+}
+
 // Better Auth stores the token encrypted, so read it through its API instead of the account table.
 export async function getGithubToken(c: CloudContext, userId: string): Promise<string> {
   const account = await findGithubAccount(userId)
@@ -27,7 +32,7 @@ export async function getGithubToken(c: CloudContext, userId: string): Promise<s
 
 function findGithubAccount(userId: string) {
   return db
-    .select({ id: accountTable.id, scope: accountTable.scope })
+    .select({ id: accountTable.id, accountId: accountTable.accountId, scope: accountTable.scope })
     .from(accountTable)
     .where(and(eq(accountTable.userId, userId), eq(accountTable.providerId, 'github')))
     .get()

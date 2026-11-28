@@ -343,6 +343,14 @@ function StatusNotice({
         </Notice>
       )
     }
+    case 'no-access': {
+      return (
+        <Notice icon='i-lucide-lock'>
+          The author can no longer push to <span className='font-mono'>{status.repo}</span>, so
+          forkstack left its branches as they were.
+        </Notice>
+      )
+    }
     case 'needs-signature': {
       return (
         <Notice icon='i-lucide-key-round'>

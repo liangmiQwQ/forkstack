@@ -3,6 +3,8 @@ import { request } from '@octokit/request'
 import { RequestError } from '@octokit/request-error'
 import { env } from 'void/env'
 
+const PUSH_PERMISSIONS = new Set(['admin', 'write'])
+
 // The GitHub App is installed on forks, not on upstream repositories, so its tokens can only write to the fork's branches.
 // Returns `null` when the app is not installed on the repository.
 export async function getRepoToken(repo: string): Promise<string | null> {
@@ -24,6 +26,22 @@ export async function getRepoToken(repo: string): Promise<string | null> {
     repositoryNames: [name]
   })
   return token
+}
+
+// The app can stay installed after the stack's owner loses access to a shared fork, so its token alone doesn't prove the owner may push.
+export async function canPush(token: string, repo: string, githubId: string): Promise<boolean> {
+  const [owner, name] = repo.split('/')
+  const api = request.defaults({ headers: { authorization: `token ${token}` } })
+  const { data: user } = await api('GET /user/{account_id}', { account_id: Number(githubId) })
+  const access = await nullIfNotFound(
+    api('GET /repos/{owner}/{repo}/collaborators/{username}/permission', {
+      owner,
+      repo: name,
+      username: user.login
+    })
+  )
+  // The legacy `permission` field folds maintain into write and triage into read.
+  return access !== null && PUSH_PERMISSIONS.has(access.data.permission)
 }
 
 // True once the user installs the app on their account, whichever repositories they pick.
