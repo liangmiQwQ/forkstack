@@ -18,10 +18,7 @@ import type { StoredStack } from './stack.ts'
 // Only the latest result is shown, for one day.
 const STATUS_TTL_MS = 24 * 60 * 60 * 1000
 
-// Long enough that a conflict left to the user isn't retried on every check, short enough that the keys clean themselves up.
-const MERGE_TTL_SECONDS = 30 * 24 * 60 * 60
-
-// Keyed by the highest merged PR, since a restack after each merge only runs once by itself.
+// Merges handled before `stack.restackedMergeId` existed. Only read, so it can go once its keys expire on 2026-12-28.
 const restackedMerges = kv.map<true>('restacked-merge')
 
 export async function readRestackStatus(stackId: string): Promise<RestackStatus | null> {
@@ -35,17 +32,19 @@ export async function readRestackStatus(stackId: string): Promise<RestackStatus 
 }
 
 // Claim the stack in one D1 write, including when two requests arrive at the same time.
-async function claimRestack(stackId: string) {
+// A merge is claimed in the same write, so a merge starts at most one rebase however many checks see it.
+async function claimRestack(stackId: string, mergeId: string | null) {
   const status = { state: 'running', at: new Date().toISOString() } as const
   const cutoff = new Date(Date.now() - RESTACK_TIMEOUT_MS).toISOString()
   const column = stackTable.restackStatus
   const rows = await db
     .update(stackTable)
-    .set({ restackStatus: status })
+    .set(mergeId ? { restackStatus: status, restackedMergeId: mergeId } : { restackStatus: status })
     .where(
       and(
         eq(stackTable.id, stackId),
-        sql`(json_extract(${column}, '$.state') IS NOT 'running' OR json_extract(${column}, '$.at') <= ${cutoff})`
+        sql`(json_extract(${column}, '$.state') IS NOT 'running' OR json_extract(${column}, '$.at') <= ${cutoff})`,
+        mergeId ? sql`${stackTable.restackedMergeId} IS NOT ${mergeId}` : undefined
       )
     )
     .returning({ id: stackTable.id })
@@ -64,14 +63,18 @@ export async function requestRestack(stack: StoredStack, onMain: boolean): Promi
   if (!(onMain ? options.onMain : options.layersOnly)) {
     return false
   }
-  if (!(await startRestack(stack.id, onMain))) {
+  if (!(await startRestack(stack.id, onMain, null))) {
     throw new HTTPException(409, { message: 'This stack is being rebased already.' })
   }
   return true
 }
 
-async function startRestack(stackId: string, onMain: boolean): Promise<boolean> {
-  const status = await claimRestack(stackId)
+async function startRestack(
+  stackId: string,
+  onMain: boolean,
+  mergeId: string | null
+): Promise<boolean> {
+  const status = await claimRestack(stackId, mergeId)
   if (!status) {
     return false
   }
@@ -95,11 +98,10 @@ export async function restackIfMerged(stackId: string, prs: PullRequest[]): Prom
   }
 
   const mergeId = prs[merged - 1].id
-  if ((await restackedMerges.get(mergeId)) || !(await startRestack(stackId, true))) {
+  if (await restackedMerges.get(mergeId)) {
     return
   }
-
-  await restackedMerges.put(mergeId, true, { ttl: MERGE_TTL_SECONDS })
+  await startRestack(stackId, true, mergeId)
 }
 
 export async function runRestack(
