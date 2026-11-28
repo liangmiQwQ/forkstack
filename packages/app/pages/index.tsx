@@ -219,6 +219,10 @@ function StackComment() {
           Warning
         </p>
         <p>
+          <strong>Don&apos;t merge this PR yet.</strong> Merging it also merges #184. Merge #184
+          first.
+        </p>
+        <p>
           This PR is in a stack (2 of 3). Learn more about{' '}
           <span className='text-sky-700 dark:text-sky-400'>stacked PRs</span>. Maintainers:{' '}
           <span className='text-sky-700 dark:text-sky-400'>merging and rebasing a stack</span>.
