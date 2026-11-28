@@ -25,13 +25,20 @@ export const submit = define({
   description: 'Push every branch in the stack to your fork, open their PRs and link the stack',
   args: {
     ...REMOTE_ARGS,
-    draft: { type: 'boolean', description: 'Open new PRs as drafts' }
+    draft: { type: 'boolean', description: 'Open new PRs as drafts' },
+    exclude: {
+      type: 'string',
+      multiple: true,
+      description: 'Leave a local branch out of the stack. Repeat to leave out more than one.'
+    }
   },
   run: async ctx => {
     // 1. Find the stack from the current branch's git ancestry
     const remotes = await findRemotes(ctx.values)
     const trunk = await findTrunk(remotes, { fetch: true })
-    const stack = await findLocalStack(trunk.oid, await currentBranch(), remotes.forkRemote)
+    const stack = await findLocalStack(trunk.oid, await currentBranch(), remotes.forkRemote, {
+      exclude: ctx.values.exclude
+    })
     const below = stack.length > 1 ? [] : await findRecordedStackBelow(stack[0])
 
     // 2. Push every branch. The lease refuses to overwrite commits pushed from elsewhere.

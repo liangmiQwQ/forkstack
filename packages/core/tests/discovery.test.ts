@@ -39,6 +39,31 @@ it("keeps a layer above its parent after the parent was amended, through the par
   expect(findStacks([top, bottom, middle])).toEqual([[bottom, middle, top]])
 })
 
+it('prefers the child built on the current head over one built on a past head', () => {
+  const layer = {
+    ...pr(1, { headOid: 'oid-1b', commits: ['oid-1', 'oid-1b'] }),
+    pastHeads: ['oid-1']
+  }
+  const abandoned = {
+    ...pr(2, { headOid: 'oid-old', commits: ['oid-1', 'oid-old'] }),
+    pastHeads: []
+  }
+  const next = { ...pr(3, { commits: ['oid-1', 'oid-1b', 'oid-3'] }), pastHeads: ['oid-3'] }
+
+  expect(findStacks([abandoned, layer, next])).toEqual([[layer, next]])
+})
+
+it('still skips a layer when every child sits on a past head', () => {
+  const layer = {
+    ...pr(1, { headOid: 'oid-1b', commits: ['oid-1b'] }),
+    pastHeads: ['oid-1']
+  }
+  const left = { ...pr(2, { commits: ['oid-1', 'oid-a'] }), pastHeads: [] }
+  const right = { ...pr(3, { commits: ['oid-1', 'oid-b'] }), pastHeads: [] }
+
+  expect(findStacks([layer, left, right])).toEqual([])
+})
+
 it('skips stacks that branch into more than one PR', () => {
   const group = [
     pr(1),

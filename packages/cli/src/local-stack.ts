@@ -1,5 +1,6 @@
 import { findStacks } from '@forkstack/core/discovery'
 
+import { COMMAND } from './command.ts'
 import { git, readForkHead } from './git.ts'
 
 export interface LocalBranch {
@@ -16,30 +17,76 @@ export interface LocalBranch {
 export async function findLocalStack(
   trunkOid: string,
   branch: string,
-  forkRemote: string
+  forkRemote: string,
+  options: { exclude?: string[] } = {}
 ): Promise<LocalBranch[]> {
-  const branches = await listBranches(trunkOid, forkRemote)
-  const current = branches.find(other => other.name === branch)
+  return chooseStack(await listBranches(trunkOid, forkRemote), branch, options.exclude)
+}
+
+// Picks the straight stack that contains `branch`. `exclude` drops abandoned branches before that choice.
+export function chooseStack(
+  branches: LocalBranch[],
+  branch: string,
+  exclude: Iterable<string> = []
+): LocalBranch[] {
+  const excluded = new Set(exclude)
+  if (excluded.has(branch)) {
+    throw new Error(`\`${branch}\` is the current branch, so it can't be excluded.`)
+  }
+
+  const included = branches.filter(other => !excluded.has(other.name))
+  const current = included.find(other => other.name === branch)
   if (!current) {
     throw new Error(`\`${branch}\` has no commits above the trunk, so it is not in a stack.`)
   }
 
-  const stack = findStacks(branches).find(stack => stack.includes(current))
+  const stack = findStacks(included).find(stack => stack.includes(current))
   if (stack) {
     return stack
   }
 
   // `findStacks` leaves out branching stacks as well as single branches, so the two are told apart here.
-  const related = branches.filter(
-    other =>
-      other !== current &&
-      (current.commits.includes(other.headOid) || other.commits.includes(current.headOid))
-  )
-  if (related.length > 0) {
-    const names = [current, ...related].map(other => `\`${other.name}\``).join(', ')
-    throw new Error(`These branches don't form one straight stack: ${names}.`)
+  const related = relatedBranches(current, included)
+  if (related.length > 1) {
+    const names = related.map(other => `\`${other.name}\``).join(', ')
+    throw new Error(
+      `These branches don't form one straight stack: ${names}. A branch built on an older head of another is usually abandoned. Delete or rename it, or leave it out with \`${COMMAND} submit --exclude <branch>\`.`
+    )
   }
   return [current]
+}
+
+// Branches related through a current head or a past head, so the error can name the one that splits the stack.
+function relatedBranches(current: LocalBranch, branches: LocalBranch[]) {
+  const related = new Set<LocalBranch>([current])
+  let grew = true
+  while (grew) {
+    grew = false
+    for (const branch of branches) {
+      if (related.has(branch)) {
+        continue
+      }
+      for (const known of related) {
+        if (sharesHistory(known, branch)) {
+          related.add(branch)
+          grew = true
+          break
+        }
+      }
+    }
+  }
+  return [...related]
+}
+
+function sharesHistory(a: LocalBranch, b: LocalBranch) {
+  const aCommits = new Set(a.commits)
+  const bCommits = new Set(b.commits)
+  return (
+    aCommits.has(b.headOid) ||
+    bCommits.has(a.headOid) ||
+    a.pastHeads.some(oid => bCommits.has(oid)) ||
+    b.pastHeads.some(oid => aCommits.has(oid))
+  )
 }
 
 // Branches without commits above the trunk, such as a local copy of the trunk, can't be layers.
