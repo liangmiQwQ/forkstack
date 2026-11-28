@@ -139,6 +139,9 @@ it('asks to install gh when the gh in GH_PATH does not exist', () => {
   expect(stderr).toContain('https://cli.github.com')
 })
 
+// Git for Windows runs `sh` to push to or fetch from a local repository, and that `sh` crashes on the CI runner, so these tests skip Windows.
+const windows = process.platform === 'win32'
+
 // A clone whose fork is a local bare repository, so the test can read what was pushed.
 // `GH_PATH` runs node on a script named `api`, which answers `gh api graphql` with no pull requests.
 function createForkClone() {
@@ -166,7 +169,7 @@ function createForkClone() {
   return { git, commit, rebase, pushed }
 }
 
-it.each([
+it.skipIf(windows).each([
   { parentMoves: false, files: 'child-1\nchild-2\nparent-1\nparent-2' },
   { parentMoves: true, files: 'child-1\nchild-2\nparent-1\nparent-2\nparent-3' }
 ])(
@@ -198,7 +201,7 @@ it.each([
   }
 )
 
-it.each([
+it.skipIf(windows).each([
   { name: 'a conflict resolution', file: 'shared', mergeFile: 'shared', message: 'conflicts' },
   { name: 'an edit of its own', file: 'own', mergeFile: 'extra', message: 'edits of its own' }
 ])(
