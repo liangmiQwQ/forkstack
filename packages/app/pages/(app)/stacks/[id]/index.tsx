@@ -12,6 +12,7 @@ import {
   Skeleton,
   StackRepo
 } from '../../../../src/components/stack.tsx'
+import { formatIdentity } from '../../../../src/identity.ts'
 import type { StackNotice } from '../../../../src/stack-notice.ts'
 import type { Props } from './index.server.ts'
 
@@ -163,7 +164,7 @@ function StackSummary({
               className='size-5 shrink-0 rounded-full border border-neutral-500/20'
             />
           )}
-          <span className='truncate'>{owner.name}</span>
+          <span className='truncate'>{formatIdentity(owner.login, owner.name)}</span>
         </span>
       </SummaryItem>
     </dl>

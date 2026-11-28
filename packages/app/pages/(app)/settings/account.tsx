@@ -1,6 +1,7 @@
 import { Form, useForm } from '@void/react'
 import type { ReactNode } from 'react'
 
+import { formatIdentity } from '../../../src/identity.ts'
 import type { Props } from './account.server.ts'
 
 export default function AccountSettingsPage({ profile, scopes }: Props) {
@@ -19,7 +20,10 @@ export default function AccountSettingsPage({ profile, scopes }: Props) {
             />
           )}
           <div className='flex min-w-0 flex-col'>
-            <span className='font-medium'>{profile.name}</span>
+            <span className='font-medium'>{formatIdentity(profile.login, profile.name)}</span>
+            {profile.login && profile.name && (
+              <span className='truncate text-sm text-neutral-500'>{profile.name}</span>
+            )}
             <span className='truncate text-sm text-neutral-500'>{profile.email}</span>
           </div>
         </div>

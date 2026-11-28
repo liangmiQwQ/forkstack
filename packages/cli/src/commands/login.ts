@@ -17,7 +17,8 @@ export const login = define({
   description: 'Sign in to forkstack in the browser with the GitHub account of gh',
   run: async () => {
     const user = (await findUser()) ?? (await signInOnWeb())
-    console.log(c.green(`Signed in to forkstack as ${user.name}.`))
+    const who = user.login ? `@${user.login}` : user.name
+    console.log(c.green(`Signed in to forkstack as ${who}.`))
   }
 })
 
