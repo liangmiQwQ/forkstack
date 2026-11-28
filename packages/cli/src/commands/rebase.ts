@@ -1,10 +1,12 @@
 import { planLayers } from '@forkstack/core/restack-plan'
+import type { LayerPlan } from '@forkstack/core/restack-plan'
 import { countMerged } from '@forkstack/core/stack-health'
 import { define } from 'gunshi'
 import c from 'picocolors'
 
 import { COMMAND } from '../command.ts'
 import { execInteractive } from '../exec.ts'
+import { flattenLayer } from '../flatten.ts'
 import { assertClean, currentBranch, git, readForkHead } from '../git.ts'
 import { findPrState } from '../github.ts'
 import { readLayerState } from '../layers.ts'
@@ -72,21 +74,46 @@ export async function restack(remotes: Remotes, trunk: Trunk): Promise<string[]>
   const layers = await Promise.all(stack.map(layer => readLayerState(layer, trunk.oid)))
   const plans = planLayers(layers, merged)
   if ('ambiguous' in plans) {
+    const merge = plans.merge ? `, because of merge ${plans.merge.slice(0, 7)}` : ''
     throw new Error(
-      `Can't tell \`${stack[plans.ambiguous].name}\`'s own commits from its parent's. Rebase it by hand.`
+      `Can't tell \`${stack[plans.ambiguous].name}\`'s own commits from its parent's${merge}. Rebase it by hand.`
     )
   }
 
-  // 2. Replay the layers. The state is saved first, so a conflict can be continued or undone.
+  // 2. Flatten the layers that merged their parent, before any branch moves
+  const pending = await planPending(plans, branch)
+
+  // 3. Replay the layers. The state is saved first, so a conflict can be continued or undone.
   await replay({
     branch,
     forkRemote: remotes.forkRemote,
     originals: stack.slice(merged).map(layer => ({ ref: layer.name, oid: layer.headOid })),
-    pending: plans.map(plan => ({ ref: plan.ref, baseOid: plan.baseOid })),
+    pending,
     onto: trunk.oid
   })
 
   return stack.slice(0, merged).map(layer => layer.name)
+}
+
+// A flattened layer is rebased from the parent commit it merged, starting at its flat head.
+async function planPending(plans: LayerPlan[], branch: string): Promise<RebaseState['pending']> {
+  try {
+    const pending: RebaseState['pending'] = []
+    for (const plan of plans) {
+      pending.push(
+        plan.flatten
+          ? {
+              ref: plan.ref,
+              baseOid: plan.flatten.tip,
+              flatHead: await flattenLayer(plan, plan.flatten)
+            }
+          : { ref: plan.ref, baseOid: plan.baseOid }
+      )
+    }
+    return pending
+  } finally {
+    await git('checkout', '--quiet', branch)
+  }
 }
 
 // The user may have finished git's rebase by hand already, so `git rebase --continue` only runs while one is open.
@@ -112,6 +139,11 @@ async function replay(state: RebaseState): Promise<void> {
   }
 
   await saveRebaseState(state)
+  // A checked-out branch can't move, so HEAD is detached first.
+  if (layer.flatHead) {
+    await git('checkout', '--quiet', '--detach')
+    await git('update-ref', `refs/heads/${layer.ref}`, layer.flatHead)
+  }
   // A layer that sits on its target already keeps its commits, so it isn't pushed again.
   if (layer.baseOid !== state.onto) {
     const args = ['rebase', '--onto', state.onto, layer.baseOid, layer.ref]

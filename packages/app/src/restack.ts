@@ -11,7 +11,8 @@ import { replayLayer } from './replay.ts'
 export type RestackResult =
   | { state: 'done'; updated: number }
   | { state: 'conflict'; prId: string; commit: string }
-  | { state: 'ambiguous'; prId: string }
+  | { state: 'ambiguous'; prId: string; merge?: string }
+  | { state: 'diverged'; prId: string; merge: string }
   | { state: 'unsupported' }
   | { state: 'too-large'; commits: number }
   | { state: 'not-installed'; repo: string }
@@ -26,7 +27,11 @@ async function inspectRestack(prIds: string[]) {
   }
   const plans = planLayers(state.layers, state.merged)
   if ('ambiguous' in plans) {
-    return { state: 'ambiguous', prId: state.layers[plans.ambiguous].prId } as const
+    return {
+      state: 'ambiguous',
+      prId: state.layers[plans.ambiguous].prId,
+      merge: plans.merge
+    } as const
   }
   return {
     state: 'ready',
@@ -45,7 +50,7 @@ export async function readRebaseOptions(prIds: string[]) {
   }
   const problem =
     plan.state === 'ambiguous'
-      ? 'The commits belonging to each layer could not be determined. Rebase locally.'
+      ? `The commits belonging to each layer could not be determined${plan.merge ? `, because of merge ${plan.merge.slice(0, 7)}` : ''}. Rebase locally.`
       : 'This stack cannot be rebased automatically. Check the pull requests on GitHub.'
   return { onMain: false, layersOnly: false, problem }
 }
@@ -61,7 +66,8 @@ export async function restack(prIds: string[], onMain: boolean): Promise<Restack
     return { state: 'done', updated: 0 }
   }
 
-  const commits = plans.reduce((sum, plan) => sum + plan.commits.length, 0)
+  // A layer that merged its parent is replayed twice, once to check it and once onto its new parent.
+  const commits = plans.reduce((sum, plan) => sum + plan.commits.length * (plan.flatten ? 2 : 1), 0)
   if (commits > MAX_COMMITS) {
     return { state: 'too-large', commits }
   }
@@ -84,9 +90,7 @@ export async function restack(prIds: string[], onMain: boolean): Promise<Restack
     await git.updateBranches(state.repositoryId, result.updates)
   }
 
-  return result.conflict
-    ? { state: 'conflict', ...result.conflict }
-    : { state: 'done', updated: result.updates.length }
+  return result.stopped ?? { state: 'done', updated: result.updates.length }
 }
 
 async function withScratchBranch<T>(git: Git, oid: string, run: (scratch: string) => Promise<T>) {
@@ -99,14 +103,24 @@ async function withScratchBranch<T>(git: Git, oid: string, run: (scratch: string
   }
 }
 
-async function replayLayers(git: Git, scratch: string, onto: string, plans: LayerPlan[]) {
+async function replayLayers(
+  git: Git,
+  scratch: string,
+  onto: string,
+  plans: LayerPlan[]
+): Promise<{ updates: RefUpdate[]; stopped: RestackResult | null }> {
   const updates: RefUpdate[] = []
 
   let base = onto
   for (const plan of plans) {
-    const replayed = await replayLayer(git, scratch, base, plan)
+    const replayed = await (plan.flatten
+      ? flattenLayer(git, scratch, base, plan, plan.flatten)
+      : replayLayer(git, scratch, base, plan))
     if ('conflict' in replayed) {
-      return { updates, conflict: { prId: plan.prId, commit: replayed.conflict } }
+      return { updates, stopped: { state: 'conflict', prId: plan.prId, commit: replayed.conflict } }
+    }
+    if ('diverged' in replayed) {
+      return { updates, stopped: { state: 'diverged', prId: plan.prId, merge: replayed.diverged } }
     }
 
     if (replayed.head !== plan.headOid) {
@@ -115,5 +129,29 @@ async function replayLayers(git: Git, scratch: string, onto: string, plans: Laye
     base = replayed.head
   }
 
-  return { updates, conflict: null }
+  return { updates, stopped: null }
+}
+
+// Dropping the parent merge must not drop edits recorded only in it, such as a conflict resolution.
+// So the layer is first replayed onto the parent commit it merged, which has to give back the same tree, and only then onto its new parent.
+async function flattenLayer(
+  git: Git,
+  scratch: string,
+  onto: string,
+  plan: LayerPlan,
+  { merge, tip }: NonNullable<LayerPlan['flatten']>
+) {
+  const checked = await replayLayer(git, scratch, tip, plan)
+  if ('conflict' in checked) {
+    return checked
+  }
+
+  const [flat, original] = await Promise.all([
+    git.getCommit(checked.head),
+    git.getCommit(plan.headOid)
+  ])
+  if (flat.tree !== original.tree) {
+    return { diverged: merge }
+  }
+  return onto === tip ? checked : replayLayer(git, scratch, onto, plan)
 }

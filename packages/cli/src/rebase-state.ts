@@ -9,8 +9,8 @@ export interface RebaseState {
   forkRemote: string
   /** Each branch's head before the rebase, to push changed ones or undo. */
   originals: { ref: string; oid: string }[]
-  /** Layers still to rebase, bottom to top. The first is the one being rebased. */
-  pending: { ref: string; baseOid: string }[]
+  /** Layers still to rebase, bottom to top. The first is the one being rebased. `flatHead` is set on a layer that merged its parent, and its branch moves there first. */
+  pending: { ref: string; baseOid: string; flatHead?: string }[]
   /** Where the first pending layer goes. */
   onto: string
 }
