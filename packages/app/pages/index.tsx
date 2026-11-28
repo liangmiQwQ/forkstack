@@ -219,8 +219,7 @@ function StackComment() {
           Warning
         </p>
         <p>
-          <strong>Don&apos;t merge this PR yet.</strong> Merging it also merges #184. Merge #184
-          first.
+          <strong>Don&apos;t merge this PR yet.</strong>
         </p>
         <p>
           This PR is in a stack (2 of 3). Learn more about{' '}
