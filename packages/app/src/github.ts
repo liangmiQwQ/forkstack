@@ -128,7 +128,8 @@ const RESTACK_QUERY = /* GraphQL */ `
           nodes {
             commit {
               oid
-              parents(first: 2) {
+              # A third parent tells an octopus merge apart from a merge of the parent.
+              parents(first: 3) {
                 nodes {
                   oid
                 }

@@ -1,8 +1,8 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { expect, it } from 'vite-plus/test'
 
@@ -138,3 +138,93 @@ it('asks to install gh when the gh in GH_PATH does not exist', () => {
   expect(status).toBe(1)
   expect(stderr).toContain('https://cli.github.com')
 })
+
+// A clone whose fork is a local bare repository, so the test can read what was pushed.
+// `GH_PATH` runs node on a script named `api`, which answers `gh api graphql` with no pull requests.
+function createForkClone() {
+  const { dir, git } = createClone()
+  const fork = join(dir, '.git', 'github.com', 'me', 'repo.git')
+  git('init', '--quiet', '--bare', fork)
+  git('remote', 'set-url', 'origin', pathToFileURL(fork).href)
+  git('remote', 'set-url', 'upstream', pathToFileURL(fork).href)
+  git('config', 'user.name', 'test')
+  git('config', 'user.email', 'test@example.com')
+  // oxlint-disable-next-line node/no-sync -- blocking is fine in a test
+  writeFileSync(
+    join(dir, 'api'),
+    `process.stdin.resume(); process.stdin.on('end', () => console.log('{"data":{"repository":{"pullRequests":{"nodes":[]}}}}'))`
+  )
+
+  const commit = (file: string, contents: string) => {
+    // oxlint-disable-next-line node/no-sync -- blocking is fine in a test
+    writeFileSync(join(dir, file), contents)
+    git('add', file)
+    git('commit', '--quiet', '--message', `${file}: ${contents}`)
+  }
+  const rebase = () => run(['rebase'], { cwd: dir, env: { GH_PATH: process.execPath } })
+  const pushed = (...args: string[]) => git('--git-dir', fork, ...args)
+  return { git, commit, rebase, pushed }
+}
+
+it.each([
+  { parentMoves: false, files: 'child-1\nchild-2\nparent-1\nparent-2' },
+  { parentMoves: true, files: 'child-1\nchild-2\nparent-1\nparent-2\nparent-3' }
+])(
+  'flattens a branch that merged its parent and pushes it linear (parent moves: $parentMoves)',
+  { timeout: 30_000 },
+  ({ parentMoves, files }) => {
+    const { git, commit, rebase, pushed } = createForkClone()
+    commitTrunk(git)
+    git('checkout', '--quiet', '-b', 'parent')
+    commit('parent-1', 'a')
+    git('checkout', '--quiet', '-b', 'child')
+    commit('child-1', 'a')
+    git('checkout', '--quiet', 'parent')
+    commit('parent-2', 'a')
+    git('checkout', '--quiet', 'child')
+    git('merge', '--quiet', '--no-edit', 'parent')
+    commit('child-2', 'a')
+    if (parentMoves) {
+      git('checkout', '--quiet', 'parent')
+      commit('parent-3', 'a')
+      git('checkout', '--quiet', 'child')
+    }
+    git('push', '--quiet', 'origin', 'main', 'parent', 'child')
+
+    expect(rebase().status).toBe(0)
+    expect(pushed('rev-parse', 'child~2')).toBe(pushed('rev-parse', 'parent'))
+    expect(pushed('rev-list', '--merges', 'main..child')).toBe('')
+    expect(pushed('ls-tree', '--name-only', 'child')).toBe(files)
+  }
+)
+
+it.each([
+  { name: 'a conflict resolution', file: 'shared', mergeFile: 'shared', message: 'conflicts' },
+  { name: 'an edit of its own', file: 'own', mergeFile: 'extra', message: 'edits of its own' }
+])(
+  'leaves a branch alone when its parent merge holds $name',
+  { timeout: 30_000 },
+  ({ file, mergeFile, message }) => {
+    const { git, commit, rebase, pushed } = createForkClone()
+    commitTrunk(git)
+    git('checkout', '--quiet', '-b', 'parent')
+    commit('shared', 'parent 1')
+    git('checkout', '--quiet', '-b', 'child')
+    commit(file, 'child')
+    git('checkout', '--quiet', 'parent')
+    commit('shared', 'parent 2')
+    git('checkout', '--quiet', 'child')
+    git('merge', '--quiet', '--strategy-option', 'ours', '--no-commit', 'parent')
+    commit(mergeFile, 'merged')
+    const head = git('rev-parse', 'child')
+    git('push', '--quiet', 'origin', 'main', 'parent', 'child')
+
+    const { status, stderr } = rebase()
+    expect(status).toBe(1)
+    expect(stderr).toContain(message)
+    expect(stderr).toContain(head.slice(0, 7))
+    expect(git('branch', '--show-current')).toBe('child')
+    expect(git('rev-parse', 'child')).toBe(head)
+    expect(pushed('rev-parse', 'child')).toBe(head)
+  }
+)

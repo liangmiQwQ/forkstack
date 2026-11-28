@@ -19,15 +19,25 @@ it("finds only the layer's own commits after its parent was squashed and force-p
   )
 
   expect(plans).toMatchObject([
-    { prId: '1', baseOid: 'main', commits: ['squashed'] },
-    { prId: '2', baseOid: 'old-1b', commits: ['2a', '2b'] }
+    { prId: '1', baseOid: 'main', commits: [{ oid: 'squashed', parent: 'main' }] },
+    {
+      prId: '2',
+      baseOid: 'old-1b',
+      commits: [
+        { oid: '2a', parent: 'old-1b' },
+        { oid: '2b', parent: '2a' }
+      ]
+    }
   ])
 })
 
 it("finds the parent's current head when the layer was restacked by hand", () => {
   const plans = planLayers([layer('1', ['main', '1a']), layer('2', ['main', '1a', '2a'])], 0)
 
-  expect(plans).toMatchObject([{ commits: ['1a'] }, { baseOid: '1a', commits: ['2a'] }])
+  expect(plans).toMatchObject([
+    { commits: [{ oid: '1a' }] },
+    { baseOid: '1a', commits: [{ oid: '2a' }] }
+  ])
 })
 
 it('stops at a layer that never meets any commit its parent had', () => {
@@ -45,7 +55,57 @@ it('plans only the open layers after the bottom was squash-merged, without the m
     1
   )
 
-  expect(plans).toMatchObject([{ prId: '2', baseOid: '1b', commits: ['2a'] }])
+  expect(plans).toMatchObject([{ prId: '2', baseOid: '1b', commits: [{ oid: '2a' }] }])
+})
+
+it('leaves out a merge of the parent, and rebases the layer though nothing below it moved', () => {
+  const parent = layer('1', ['main', '1a', '1b'])
+  const child: LayerState = {
+    prId: '2',
+    ref: 'branch-2',
+    headOid: '2b',
+    pastHeads: [],
+    commits: new Map([
+      ['2a', ['1a']],
+      ['merge', ['2a', '1b']],
+      ['2b', ['merge']]
+    ])
+  }
+
+  const plans = planLayers([parent, child], 0)
+  if ('ambiguous' in plans) {
+    throw new Error('Expected the parent merge to be planned')
+  }
+  expect(plans[1]).toMatchObject({
+    baseOid: '1a',
+    commits: [
+      { oid: '2a', parent: '1a' },
+      { oid: '2b', parent: 'merge' }
+    ],
+    flatten: { merge: 'merge', tip: '1b' }
+  })
+  expect(rebaseTargets(plans, 'main')).toEqual({ onMain: true, layersOnly: true })
+})
+
+it.each([
+  { name: 'something other than the parent', parents: ['2a', 'other'] },
+  { name: 'several branches at once', parents: ['2a', '1a', 'other'] }
+])('names the merge that stops planning when a layer merged $name', ({ parents }) => {
+  const child: LayerState = {
+    prId: '2',
+    ref: 'branch-2',
+    headOid: 'merge',
+    pastHeads: [],
+    commits: new Map([
+      ['2a', ['1a']],
+      ['merge', parents]
+    ])
+  }
+
+  expect(planLayers([layer('1', ['main', '1a']), child], 0)).toEqual({
+    ambiguous: 1,
+    merge: 'merge'
+  })
 })
 
 it.each([

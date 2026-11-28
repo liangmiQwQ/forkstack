@@ -14,8 +14,7 @@ export async function replayLayer(
   let head = onto
   let headTree: string | null = null
 
-  for (const [index, oid] of layer.commits.entries()) {
-    const parent = index === 0 ? layer.baseOid : layer.commits[index - 1]
+  for (const { oid, parent } of layer.commits) {
     // The commit already sits on the target, so it is kept as is. This leaves layers that don't move untouched.
     if (parent === head) {
       head = oid

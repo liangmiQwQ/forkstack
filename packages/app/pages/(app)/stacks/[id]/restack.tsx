@@ -287,7 +287,24 @@ function StatusNotice({
         <Notice icon='i-lucide-circle-help'>
           forkstack can&apos;t tell which commits in #{number(status.prId)} belong to the pull
           request below it, such as when its branch was built on commits never pushed to that pull
-          request, or contains a merge commit. Rebase it locally, push, then restack again.
+          request
+          {status.merge ? (
+            <>
+              , or merged <code className='font-mono'>{status.merge.slice(0, 7)}</code> from
+              something other than that pull request
+            </>
+          ) : null}
+          . Rebase it locally, push, then restack again.
+        </Notice>
+      )
+    }
+    case 'diverged': {
+      return (
+        <Notice icon='i-lucide-git-merge'>
+          Merge <code className='font-mono'>{status.merge.slice(0, 7)}</code> in #
+          {number(status.prId)} holds edits of its own, which flattening #{number(status.prId)}{' '}
+          would drop. It and the pull requests above were left as they were. Rebase it locally,
+          push, then restack again.
         </Notice>
       )
     }

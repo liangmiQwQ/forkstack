@@ -43,6 +43,9 @@ export function describeStack(
     case 'ambiguous': {
       return problem(`Can't find #${number(status.prId)}'s commits`)
     }
+    case 'diverged': {
+      return problem(`#${number(status.prId)} needs a local rebase`)
+    }
     default: {
       return problem('Last rebase failed')
     }

@@ -16,20 +16,23 @@ export interface LayerPlan {
   headOid: string
   /** The commit the layer's own commits sit on. */
   baseOid: string
-  /** The layer's own commits, bottom to top. */
-  commits: string[]
+  /** The layer's own commits, bottom to top, each with the parent its changes are taken against. */
+  commits: { oid: string; parent: string }[]
   /** Whether those commits sit on the parent's, rather than on the base branch. */
   onParent: boolean
+  /** Set when the layer ran `git merge` of its parent. The merge is left out of `commits`, and `tip` is the parent commit it brought in. */
+  flatten?: { merge: string; tip: string }
 }
 
 // Nothing about a stack is stored between restacks, since users force-push, squash and restack by hand outside forkstack.
 // Each layer's own commits are found again from what GitHub knows now: the commits above the newest parent commit in its branch.
 // The first `merged` layers were merged already. They aren't planned, but still mark where the lowest open layer's commits start.
 // Returns the index of the first layer whose commits can't be told apart from its parent's, so the user restacks it by hand.
+// `merge` is the merge commit that stopped planning, when one did.
 export function planLayers(
   layers: LayerState[],
   merged: number
-): LayerPlan[] | { ambiguous: number } {
+): LayerPlan[] | { ambiguous: number; merge?: string } {
   const plans: LayerPlan[] = []
 
   for (const [index, layer] of layers.entries()) {
@@ -38,8 +41,8 @@ export function planLayers(
     }
 
     const plan = planLayer(layer, layers[index - 1], index === merged)
-    if (!plan) {
-      return { ambiguous: index }
+    if (!('prId' in plan)) {
+      return { ambiguous: index, ...plan }
     }
     plans.push(plan)
   }
@@ -52,9 +55,11 @@ export function planLayers(
 export function rebaseTargets(plans: LayerPlan[], mainOid: string) {
   const baseMoved = plans.length > 0 && plans[0].baseOid !== mainOid
   const layerMoved = plans.some((plan, i) => i > 0 && plan.baseOid !== plans[i - 1].headOid)
+  // A layer that merged its parent is rewritten even when nothing below it moved.
+  const merges = plans.some(plan => plan.flatten)
   return {
-    onMain: baseMoved || layerMoved,
-    layersOnly: layerMoved || (baseMoved && plans[0].onParent)
+    onMain: baseMoved || layerMoved || merges,
+    layersOnly: layerMoved || merges || (baseMoved && plans[0].onParent)
   }
 }
 
@@ -65,9 +70,10 @@ function planLayer(
   layer: LayerState,
   parent: LayerState | undefined,
   lowest: boolean
-): LayerPlan | null {
+): LayerPlan | { merge?: string } {
   const parentCommits = new Set(parent ? [...parent.commits.keys(), ...parent.pastHeads] : [])
-  const commits: string[] = []
+  const commits: LayerPlan['commits'] = []
+  let flatten: LayerPlan['flatten']
 
   let oid = layer.headOid
   while (!parentCommits.has(oid)) {
@@ -75,16 +81,23 @@ function planLayer(
     if (!parents) {
       // A layer above the lowest open one that never meets its parent may hold parent commits that were never pushed, which can't be found.
       if (!lowest) {
-        return null
+        return {}
       }
       break
     }
-    // Replaying a merge commit would need a merge strategy, which a rebase doesn't have.
-    if (parents.length !== 1) {
-      return null
-    }
 
-    commits.unshift(oid)
+    if (parents.length === 1) {
+      commits.unshift({ oid, parent: parents[0] })
+      oid = parents[0]
+      continue
+    }
+    // `git merge <parent>` puts the parent's commit second. Such a merge only brings in what the layer is rebased onto anyway, so it is dropped.
+    // Any other merge holds changes a rebase can't replay.
+    if (parents.length !== 2 || !parentCommits.has(parents[1])) {
+      return { merge: oid }
+    }
+    // The newest merge brought in the most of the parent, so the replay is checked against that one.
+    flatten ??= { merge: oid, tip: parents[1] }
     oid = parents[0]
   }
 
@@ -94,6 +107,7 @@ function planLayer(
     headOid: layer.headOid,
     baseOid: oid,
     commits,
-    onParent: parentCommits.has(oid)
+    onParent: parentCommits.has(oid),
+    ...(flatten && { flatten })
   }
 }
