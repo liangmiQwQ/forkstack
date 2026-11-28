@@ -1,6 +1,6 @@
 {
   "name": "@forkstack/app",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "private": true,
   "description": "Manage stacked pull requests across GitHub forks.",
   "license": "MIT",
