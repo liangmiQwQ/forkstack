@@ -66,7 +66,9 @@ function englishList(numbers: number[]) {
 // Drawn like a stack, with the top PR first and the base branch at the bottom.
 // GitHub renders a `#123` list item with the PR's title and state, so the list needs no live status of its own.
 function renderList(stack: PullRequest[], index: number) {
-  const prs = stack.map((pr, i) => (i === index ? `- #${pr.number} (this PR)` : `- #${pr.number}`))
+  const prs = stack.map((pr, i) =>
+    i === index ? `- #${pr.number} **(this PR)**` : `- #${pr.number}`
+  )
   return [...prs.toReversed(), `- \`${stack[0].baseRef}\``].join('\n')
 }
 
