@@ -28,7 +28,8 @@ export async function requireTokenUser(c: CloudContext): Promise<TokenUser> {
     throw new HTTPException(401, { message: 'Send a GitHub token as a bearer token.' })
   }
 
-  const githubId = await findGithubId(token)
+  // A revoked token stays cached for up to a minute, so only reads trust the cache.
+  const githubId = await findGithubId(token, c.req.method === 'GET')
   if (githubId === null) {
     throw new HTTPException(401, { message: 'This GitHub token is not valid.' })
   }
@@ -49,9 +50,9 @@ export async function requireTokenUser(c: CloudContext): Promise<TokenUser> {
 }
 
 // Better Auth stores the GitHub user ID as the account ID, as a string.
-async function findGithubId(token: string): Promise<string | null> {
+async function findGithubId(token: string, useCache: boolean): Promise<string | null> {
   const key = await sha256(token)
-  const cached = await githubIdByToken.get(key)
+  const cached = useCache ? await githubIdByToken.get(key) : null
   if (cached !== null) {
     return cached
   }
