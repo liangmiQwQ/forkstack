@@ -39,7 +39,8 @@ export default function LoginPage({ error, next }: Props) {
 
       <p className='text-xs text-neutral-500'>
         forkstack asks for access to your public repositories so it can update your pull requests
-        for you, and to add a push webhook to the forks you link.
+        for you, to push rebases that update workflow files, and to add a push webhook to the forks
+        you link.
       </p>
     </main>
   )

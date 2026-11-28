@@ -41,8 +41,8 @@ export default function NewStackPage({ cachedStacks, stacks, managed, needsReaut
           <p className='flex items-start gap-3'>
             <span className='i-lucide-webhook mt-0.5 shrink-0 text-neutral-500' />
             <span>
-              forkstack now adds a push webhook to the fork of each stack you link. Reauthorize it
-              with GitHub to grant that permission.
+              forkstack now adds a push webhook to the fork of each stack you link, and pushes
+              rebases that update workflow files. Reauthorize it with GitHub to grant both.
             </span>
           </p>
           <ReauthorizeButton callbackURL='/stacks/new' />

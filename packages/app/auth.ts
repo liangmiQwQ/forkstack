@@ -9,7 +9,9 @@ export default defineAuth(({ defaults, env }) => ({
       clientSecret: String(env.AUTH_GITHUB_CLIENT_SECRET),
       // An OAuth App token acts as the user on any public repo, which a GitHub App user token cannot do on upstream repos it isn't installed on.
       // Restacks push with it, so GitHub attributes them to the contributor. `write:repo_hook` adds the push webhook on their fork.
-      scope: ['public_repo', 'write:repo_hook'],
+      // GitHub refuses OAuth pushes that change `.github/workflows` without `workflow`, which a rebase onto a newer base often does.
+      // Update `CURRENT_SCOPES` in `src/account.ts` along with this list.
+      scope: ['public_repo', 'write:repo_hook', 'workflow'],
       overrideUserInfoOnSignIn: true,
       // The display name is often blank. The login is what GitHub shows next to PRs.
       mapProfileToUser: profile => ({ login: profile.login })

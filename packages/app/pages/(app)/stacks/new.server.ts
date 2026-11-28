@@ -5,10 +5,9 @@ import { defer, defineHandler, defineHead } from 'void'
 import type { InferProps } from 'void'
 import { requireAuth } from 'void/auth'
 
-import { getGithubToken } from '../../../src/account.ts'
+import { getGithubToken, hasCurrentGrant } from '../../../src/account.ts'
 import { keepAdminStacks } from '../../../src/fork-admin.ts'
 import { searchOpenPrs } from '../../../src/github.ts'
-import { canAddHooks } from '../../../src/push-hook.ts'
 import { cacheStacks, readCachedStacks } from '../../../src/stack-cache.ts'
 import { excludeSaved, linkStack } from '../../../src/stack-link.ts'
 import { fetchBotComments } from '../../../src/stack-markers.ts'
@@ -32,15 +31,14 @@ export const loader = defineHandler(async c => {
     savedPromise
   ]).then(([token, prs, saved]) => keepAdminStacks(token, excludeSaved(discoverStacks(prs), saved)))
 
-  const [saved, cachedStacks, hookAccess] = await Promise.all([
+  const [saved, cachedStacks, currentGrant] = await Promise.all([
     savedPromise,
     readCachedStacks(user.id),
-    canAddHooks(user.id)
+    hasCurrentGrant(user.id)
   ])
 
   return {
-    // Grants from before forkstack added push webhooks lack the scope, so the page offers to reauthorize.
-    needsReauthorize: !hookAccess,
+    needsReauthorize: !currentGrant,
     // Stacks from the last visit fill the first screen while GitHub answers.
     cachedStacks: cachedStacks && excludeSaved(cachedStacks, saved),
     stacks: defer(async () => {

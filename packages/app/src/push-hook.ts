@@ -18,7 +18,7 @@ interface Hook {
 // The page forkstack sends users to when their GitHub grant is missing the hook scope. It offers to reauthorize.
 const REAUTHORIZE_PATH = '/stacks/new'
 
-export async function canAddHooks(userId: string): Promise<boolean> {
+async function canAddHooks(userId: string): Promise<boolean> {
   const scopes = await getGithubScopes(userId)
   return scopes.some(scope => HOOK_SCOPES.has(scope))
 }
