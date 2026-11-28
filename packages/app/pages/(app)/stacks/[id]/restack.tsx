@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { connectLiveStream } from 'void/live/client'
 
+import { ReauthorizeButton } from '../../../../src/components/reauthorize.tsx'
 import {
   LoadError,
   PendingIcon,
@@ -52,7 +53,8 @@ function RebaseView({
   prCount,
   status,
   running,
-  installUrl,
+  isAuthor,
+  needsReauthorize,
   github
 }: ViewProps & { github?: GitHubData }) {
   const prs = github?.prs
@@ -62,12 +64,27 @@ function RebaseView({
     <div className='flex flex-col gap-6'>
       <RebaseHeader stackId={stackId} />
 
+      {needsReauthorize && (
+        <Notice icon='i-lucide-key-round'>
+          <span className='flex flex-col gap-3'>
+            forkstack needs permission to push rebases that update workflow files. Reauthorize it
+            with GitHub, or a rebase onto a base that changed them fails.
+            <ReauthorizeButton callbackURL={`/stacks/${stackId}/restack`} />
+          </span>
+        </Notice>
+      )}
       {options?.problem && <Notice icon='i-lucide-circle-alert'>{options.problem}</Notice>}
       {options && !options.problem && !options.onMain && (
         <Notice icon='i-lucide-circle-check'>This stack is up to date.</Notice>
       )}
       {status && (running || (options?.onMain && !options.problem)) && (
-        <StatusNotice status={status} running={running} prs={prs} installUrl={installUrl} />
+        <StatusNotice
+          stackId={stackId}
+          status={status}
+          running={running}
+          prs={prs}
+          isAuthor={isAuthor}
+        />
       )}
 
       <article className='card overflow-hidden'>
@@ -236,17 +253,18 @@ function useRestackStatus(stackId: string, saved: RestackStatus | null, expiredA
 
 // Every outcome says what happened on GitHub and what the user can do next.
 function StatusNotice({
+  stackId,
   status,
   running,
   prs,
-  installUrl
+  isAuthor
 }: {
+  stackId: string
   status: RestackStatus
   running: boolean
   /** Missing while GitHub loads, when only a running rebase shows. */
   prs?: PullRequest[]
-  /** `null` for a maintainer, who can't install the GitHub App on the author's fork. */
-  installUrl: string | null
+  isAuthor: boolean
 }) {
   const number = (prId: string) => prs?.find(pr => pr.id === prId)?.number
 
@@ -325,20 +343,18 @@ function StatusNotice({
         </Notice>
       )
     }
-    case 'not-installed': {
+    case 'signed-out': {
       return (
         <Notice icon='i-lucide-plug'>
-          forkstack needs its GitHub App on <span className='font-mono'>{status.repo}</span> to push
-          the rebased branches.{' '}
-          {installUrl ? (
-            <>
-              <a href={installUrl} target='_blank' rel='noreferrer' className='underline'>
-                Install it
-              </a>
-              , then try again.
-            </>
+          forkstack pushes rebased branches as the author, and GitHub no longer accepts the
+          author&apos;s sign-in, so no branch was changed.{' '}
+          {isAuthor ? (
+            <span className='mt-3 flex flex-col gap-3'>
+              Sign in with GitHub again, then try again.
+              <ReauthorizeButton callbackURL={`/stacks/${stackId}/restack`} />
+            </span>
           ) : (
-            'Ask the author to install it, then try again.'
+            'Ask the author to sign in to forkstack again.'
           )}
         </Notice>
       )
@@ -356,7 +372,7 @@ function StatusNotice({
         <Notice icon='i-lucide-key-round'>
           This stack has verified commits, or its base branch requires signed commits, so forkstack
           didn&apos;t rewrite them unsigned. No branch was changed.{' '}
-          {installUrl ? (
+          {isAuthor ? (
             <>
               <Link href='/settings/signing' className='underline'>
                 Add a signing key
@@ -374,7 +390,7 @@ function StatusNotice({
         <Notice icon='i-lucide-shield-alert'>
           GitHub didn&apos;t verify the signed commits (
           <code className='font-mono'>{status.reason}</code>), so no branch was changed.{' '}
-          {installUrl ? (
+          {isAuthor ? (
             <>
               Check that the public key from{' '}
               <Link href='/settings/signing' className='underline'>

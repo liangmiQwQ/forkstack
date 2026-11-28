@@ -2,10 +2,9 @@ import * as v from 'valibot'
 import { defer, defineHandler, defineHead } from 'void'
 import type { CloudContext, InferProps } from 'void'
 import { requireAuth } from 'void/auth'
-import { env } from 'void/env'
 import type { PageParams } from 'void/routes'
 
-import { getGithubToken } from '../../../../src/account.ts'
+import { getGithubToken, hasCurrentGrant } from '../../../../src/account.ts'
 import { fetchPrs } from '../../../../src/github.ts'
 import { findRebasableStack } from '../../../../src/rebase-access.ts'
 import { readRestackStatus, requestRestack } from '../../../../src/restack-job.ts'
@@ -24,9 +23,11 @@ export const loader = defineHandler(async c => {
   const stack = await findRebasableStack(c, user.id, stackId)
 
   // A missing GitHub sign-in sends a 401, so it is checked before the page starts streaming.
-  const [token, status] = await Promise.all([
+  const isAuthor = user.id === stack.userId
+  const [token, status, currentGrant] = await Promise.all([
     getGithubToken(c, user.id),
-    readRestackStatus(stack.id)
+    readRestackStatus(stack.id),
+    isAuthor ? hasCurrentGrant(user.id) : true
   ])
 
   return {
@@ -49,11 +50,10 @@ export const loader = defineHandler(async c => {
       ])
       return { prs, options }
     }),
-    // Only the author can install the GitHub App on their fork, so a maintainer gets no link.
-    installUrl:
-      user.id === stack.userId
-        ? `https://github.com/apps/${env.GITHUB_APP_SLUG}/installations/new`
-        : null
+    // Only the author can fix their GitHub grant or signing key, so a maintainer is told to ask them.
+    isAuthor,
+    // A rebase onto a base that changed workflow files fails without the `workflow` scope.
+    needsReauthorize: !currentGrant
   }
 })
 

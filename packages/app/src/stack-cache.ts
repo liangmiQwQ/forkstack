@@ -4,7 +4,8 @@ import { kv } from 'void/kv'
 // The cache only fills the first screen until fresh data arrives, so stale entries are harmless and a week covers most return visits.
 const TTL_SECONDS = 7 * 24 * 60 * 60
 
-const stacksByUser = kv.map<PullRequest[][]>('stacks')
+// Renamed from `stacks` when only stacks in forks the user administers were kept, so older unfiltered entries are never read.
+const stacksByUser = kv.map<PullRequest[][]>('admin-stacks')
 const savedPrsByUser = kv.map<PullRequest[]>('saved-prs')
 
 export function readCachedStacks(userId: string): Promise<PullRequest[][] | null> {

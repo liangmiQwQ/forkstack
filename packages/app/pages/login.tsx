@@ -10,8 +10,7 @@ export default function LoginPage({ error, next }: Props) {
     setPending(true)
     void auth.signIn.social({
       provider: 'github',
-      // Signing in ends on the GitHub App step, which skips itself once the app is installed.
-      callbackURL: `/login/install?next=${encodeURIComponent(next)}`,
+      callbackURL: next,
       errorCallbackURL: `/login?next=${encodeURIComponent(next)}`
     })
   }
@@ -40,7 +39,8 @@ export default function LoginPage({ error, next }: Props) {
 
       <p className='text-xs text-neutral-500'>
         forkstack asks for access to your public repositories so it can update your pull requests
-        for you.
+        for you, to push rebases that update workflow files, and to add a push webhook to the forks
+        you link.
       </p>
     </main>
   )

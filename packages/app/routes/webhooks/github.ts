@@ -12,12 +12,12 @@ const PUSH_EVENT = v.object({
   repository: v.object({ full_name: v.string() })
 })
 
-// The GitHub App is installed on forks, so it hears pushes to stack branches but nothing from upstream.
+// Linking a stack adds a push webhook to its fork, so forkstack hears pushes to stack branches but nothing from upstream.
 export const POST = defineHandler(async c => {
   // The signature covers the exact bytes GitHub sent, so the body is read as text before parsing.
   const body = await c.req.text()
   const signature = c.req.header('x-hub-signature-256') ?? ''
-  if (!(await verify(env.GITHUB_APP_WEBHOOK_SECRET, body, signature))) {
+  if (!(await verify(env.GITHUB_WEBHOOK_SECRET, body, signature))) {
     return c.body(null, 401)
   }
 

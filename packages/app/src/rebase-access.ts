@@ -32,7 +32,7 @@ export async function findRebasableStack(
   return stack
 }
 
-// A maintainer only starts the rebase. The GitHub App on the author's fork replays and pushes it, as it does for the author.
+// A maintainer only starts the rebase. It replays and pushes with the author's GitHub grant, as when the author clicks.
 export async function canRebase(
   c: CloudContext,
   userId: string,

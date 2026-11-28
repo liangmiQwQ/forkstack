@@ -2,7 +2,9 @@ import { discoverStacks } from '@forkstack/core/discovery'
 import type { PullRequest } from '@forkstack/core/discovery'
 import { env } from 'void/env'
 
+import { requireForkAdmin } from './fork-admin.ts'
 import { fetchPrs, searchOpenPrs } from './github.ts'
+import { requirePushHook } from './push-hook.ts'
 import { addCachedSavedPrs } from './stack-cache.ts'
 import { markPrs, syncMarkers, unmarkPrs } from './stack-markers.ts'
 import { createStack, deleteStack, listStacks, removePrs, replaceStackPrs } from './stack.ts'
@@ -11,19 +13,26 @@ import type { StoredStack } from './stack.ts'
 // Shared by the "Find stacks" page and the CLI's API, so both save stacks the same way.
 // Returns the stack's ID, or `null` when GitHub doesn't show these PRs as a stack, in this order.
 // Adding a PR to a stack that is already saved keeps that stack's ID.
+// `origin` is this deployment's, where the fork's push webhook delivers.
 export async function linkStack(
   userId: string,
   token: string,
-  prIds: string[]
+  prIds: string[],
+  origin: string
 ): Promise<string | null> {
   // The stack is found again from GitHub, so only the user's own PRs are saved, in the order their commits show.
   const [prs, saved] = await Promise.all([searchOpenPrs(token), listStacks(userId)])
   const stack = discoverStacks(prs).find(
     stack => stack.map(pr => pr.id).join(',') === prIds.join(',')
   )
-  if (!stack) {
+  const fork = stack?.[0].headRepo
+  if (!stack || !fork) {
     return null
   }
+
+  // Checked on every binding, even with a hook in place, and before anything is saved or posted, so a failed setup leaves the stack unbound.
+  await requireForkAdmin(token, fork)
+  await requirePushHook(userId, fork, origin)
 
   const overlapping = saved.filter(existing => sharesPr(existing, stack))
   // A PR can only be in one stack. Two saved stacks claiming these PRs is left for the caller to sort out.
