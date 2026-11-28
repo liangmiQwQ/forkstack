@@ -2,7 +2,7 @@ import { defineLiveStream } from 'void/live'
 
 import type { RestackStatus } from './restack-status.ts'
 
-// The route verifies ownership and scopes the connection to this one stack.
+// The route checks the visitor may rebase the stack, and scopes the connection to this one stack.
 export const restackLive = defineLiveStream({
   id: 'restack',
   onSubscribe: ({ owner, topic }) =>

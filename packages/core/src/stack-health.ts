@@ -11,3 +11,12 @@ export function countMerged(states: PullRequest['state'][]): number | null {
 
   return states.slice(merged).every(state => state === 'OPEN') ? merged : null
 }
+
+// Maintainers may rebase only with the author's consent, which is "Allow edits by maintainers" on every open PR.
+// Only open PRs count, since merged ones just mark where the layers above them start.
+// GitHub never offers the setting on forks owned by an organization, so those stacks stay with their author.
+export function allowsMaintainerEdits(
+  prs: { state: PullRequest['state']; maintainerCanModify: boolean }[]
+): boolean {
+  return prs.every(pr => pr.state !== 'OPEN' || pr.maintainerCanModify)
+}

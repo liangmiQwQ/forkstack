@@ -245,7 +245,8 @@ function StatusNotice({
   running: boolean
   /** Missing while GitHub loads, when only a running rebase shows. */
   prs?: PullRequest[]
-  installUrl: string
+  /** `null` for a maintainer, who can't install the GitHub App on the author's fork. */
+  installUrl: string | null
 }) {
   const number = (prId: string) => prs?.find(pr => pr.id === prId)?.number
 
@@ -329,10 +330,16 @@ function StatusNotice({
         <Notice icon='i-lucide-plug'>
           forkstack needs its GitHub App on <span className='font-mono'>{status.repo}</span> to push
           the rebased branches.{' '}
-          <a href={installUrl} target='_blank' rel='noreferrer' className='underline'>
-            Install it
-          </a>
-          , then try again.
+          {installUrl ? (
+            <>
+              <a href={installUrl} target='_blank' rel='noreferrer' className='underline'>
+                Install it
+              </a>
+              , then try again.
+            </>
+          ) : (
+            'Ask the author to install it, then try again.'
+          )}
         </Notice>
       )
     }

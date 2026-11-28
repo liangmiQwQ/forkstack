@@ -7,18 +7,18 @@ import type { PageParams } from 'void/routes'
 
 import { getGithubToken } from '../../../../src/account.ts'
 import { fetchPrs } from '../../../../src/github.ts'
-import { findOwnStack } from '../../../../src/own-stack.ts'
+import { findRebasableStack } from '../../../../src/rebase-access.ts'
 import { readRestackStatus, requestRestack } from '../../../../src/restack-job.ts'
 import { RESTACK_TIMEOUT_MS } from '../../../../src/restack-status.ts'
 import { fetchRebaseOptions } from '../../../../src/stack-status.ts'
 
 export type Props = InferProps<typeof loader>
 
-// The bot comment on every PR links here, so the page checks the visitor owns the stack before showing it.
+// The bot comment on every PR links here, so the page checks the visitor may rebase the stack before showing it.
 // Only the database reads hold back the page, and the GitHub reads stream in after it shows.
 export const loader = defineHandler(async c => {
   const user = requireAuth(c, { throwRedirect: '/login' })
-  const stack = await findOwnStack(user.id, readStackId(c))
+  const stack = await findRebasableStack(c, user.id, readStackId(c))
 
   // A missing GitHub sign-in sends a 401, so it is checked before the page starts streaming.
   const [token, status] = await Promise.all([
@@ -46,7 +46,11 @@ export const loader = defineHandler(async c => {
       ])
       return { prs, options }
     }),
-    installUrl: `https://github.com/apps/${env.GITHUB_APP_SLUG}/installations/new`
+    // Only the author can install the GitHub App on their fork, so a maintainer gets no link.
+    installUrl:
+      user.id === stack.userId
+        ? `https://github.com/apps/${env.GITHUB_APP_SLUG}/installations/new`
+        : null
   }
 })
 
@@ -55,7 +59,7 @@ export const actions = {
     body: v.object({ onMain: v.boolean() })
   })(async (c, { body }) => {
     const user = requireAuth(c)
-    const stack = await findOwnStack(user.id, readStackId(c))
+    const stack = await findRebasableStack(c, user.id, readStackId(c))
 
     await requestRestack(stack, body.onMain)
   })
