@@ -46,6 +46,13 @@ When you review, use the review link, and leave comments about a lower PR on tha
 
 ## Rebase
 
-Only the author of the stack can rebase it, from the stack page or with `forkstack rebase` on their machine. A maintainer can't push the rebase for them.
+After the bottom PR merges, forkstack rebases the rest on its own. A stack can also need a rebase before that, for example after `main` has moved and the checks are failing, or after the author changed a lower PR.
 
-Ask the author when a stack needs a rebase before the bottom PR merges, for example after `main` has moved and the checks are failing, or after the author changed a lower PR. After the bottom PR merges, forkstack rebases the rest on its own.
+The author can rebase it from the stack page, or with `forkstack rebase` on their machine.
+
+You can start the same rebase from the stack page, after signing in to forkstack with GitHub, when both are true:
+
+- You have write access to the upstream repository.
+- Every open PR in the stack has "Allow edits by maintainers" on. GitHub doesn't offer it on forks owned by an organization, so those stacks stay with the author.
+
+forkstack's GitHub App on the author's fork then replays the commits and force-pushes the branches, as it does when the author clicks. Your GitHub sign-in is only used to check your access, never to push. Otherwise, ask the author to rebase.

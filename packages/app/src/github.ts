@@ -151,6 +151,25 @@ const RESTACK_QUERY = /* GraphQL */ `
   }
 `
 
+const MAINTAINER_EDITS_QUERY = /* GraphQL */ `
+  query ($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on PullRequest {
+        state
+        maintainerCanModify
+      }
+    }
+  }
+`
+
+const VIEWER_PERMISSION_QUERY = /* GraphQL */ `
+  query ($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
+      viewerPermission
+    }
+  }
+`
+
 const ADD_COMMENT_MUTATION = /* GraphQL */ `
   mutation ($subjectId: ID!, $body: String!) {
     addComment(input: { subjectId: $subjectId, body: $body }) {
@@ -250,6 +269,15 @@ export interface RestackState {
   layers: LayerState[]
 }
 
+export interface MaintainerEdits {
+  state: PullRequest['state']
+  maintainerCanModify: boolean
+}
+
+interface ViewerPermissionResult {
+  repository: { viewerPermission: string | null } | null
+}
+
 interface AddCommentResult {
   addComment: { commentEdge: { node: { id: string } } }
 }
@@ -287,6 +315,20 @@ export async function fetchLogin(token: string): Promise<string> {
 export async function fetchPrs(token: string, ids: string[]): Promise<PullRequest[]> {
   const nodes = await requestNodes<PullRequestNode>(token, PRS_QUERY, ids)
   return nodes.map(toPullRequest)
+}
+
+export function fetchMaintainerEdits(token: string, ids: string[]): Promise<MaintainerEdits[]> {
+  return requestNodes<MaintainerEdits>(token, MAINTAINER_EDITS_QUERY, ids)
+}
+
+// `null` when the repository is gone, or GitHub reports no permission to this token.
+export async function fetchViewerPermission(token: string, repo: string): Promise<string | null> {
+  const [owner, name] = repo.split('/')
+  const result = await createClient(token)<ViewerPermissionResult>(VIEWER_PERMISSION_QUERY, {
+    owner,
+    name
+  })
+  return result.repository?.viewerPermission ?? null
 }
 
 export async function fetchViewerComments(

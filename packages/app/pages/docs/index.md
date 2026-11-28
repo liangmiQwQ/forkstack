@@ -25,7 +25,7 @@ For a stack of three PRs:
 
 You don't need to install anything. The comment on each PR lists the stack and links to a diff of only that PR's changes. The stack page shows the live state, checks and review of each PR.
 
-Use that diff when you review, and leave comments about a lower PR on that PR. Merge from the bottom, one PR at a time, and wait for forkstack to rebase the rest onto `main` before merging the next. The [maintainers guide](/docs/maintainers) has the full steps, including which merge methods work and what breaks a stack.
+Use that diff when you review, and leave comments about a lower PR on that PR. Merge from the bottom, one PR at a time, and wait for forkstack to rebase the rest onto `main` before merging the next. When the PRs allow edits by maintainers, you can also rebase the stack from its page. The [maintainers guide](/docs/maintainers) has the full steps, including which merge methods work and what breaks a stack.
 
 ## For contributors
 

@@ -43,7 +43,6 @@ function StackView({
   repo,
   prCount,
   owner,
-  canRebase,
   signedIn,
   deletesAt,
   github
@@ -60,7 +59,7 @@ function StackView({
           <StackState
             stackId={stackId}
             notice={github.notice}
-            canRebase={canRebase}
+            canRebase={github.canRebase}
             signedIn={signedIn}
           />
         ) : (
@@ -269,8 +268,8 @@ function joinCounts(counts: [count: number, label: string][]) {
     .join(' · ')
 }
 
-// Restacks after a merge run without anyone watching, so the state shows whether the stack needs its owner.
-// Only the owner can rebase, so everyone else sees the state as text, and an up-to-date stack has nothing to rebase.
+// Restacks after a merge run without anyone watching, so the state shows whether the stack needs a rebase.
+// Anyone who can't rebase sees the state as text, and an up-to-date stack has nothing to rebase.
 function StackState({
   stackId,
   notice,
@@ -283,7 +282,7 @@ function StackState({
   signedIn: boolean
 }) {
   const color = notice.kind === 'problem' ? 'text-amber-600 dark:text-amber-400' : ''
-  const needsOwner = notice.kind === 'idle' || notice.kind === 'problem'
+  const needsRebase = notice.kind === 'idle' || notice.kind === 'problem'
 
   if (canRebase && notice.kind !== 'current') {
     return (
@@ -297,14 +296,14 @@ function StackState({
   const state = (
     <span className={`flex items-center gap-2 text-sm ${color}`}>
       <span className={NOTICE_ICONS[notice.kind]} />
-      {/* The idle label names the owner's action, which reads as an instruction to anyone else. */}
+      {/* The idle label names the rebase action, which reads as an instruction to anyone who can't take it. */}
       {notice.kind === 'idle' && !canRebase ? 'Needs a rebase' : notice.label}
     </span>
   )
-  if (signedIn || !needsOwner) {
+  if (signedIn || !needsRebase) {
     return state
   }
-  // Authors mostly arrive from the PR comment, often signed out, so they need a way back to the rebase controls.
+  // Authors and maintainers mostly arrive from the PR comment, often signed out, so they need a way to the rebase controls.
   return (
     <span className='flex items-center gap-3'>
       {state}
