@@ -1,13 +1,16 @@
+import { HTTPException } from 'hono/http-exception'
 import { defineHandler, defineHead } from 'void'
-import type { InferProps } from 'void'
 import { getUser } from 'void/auth'
-
-export type Props = InferProps<typeof loader>
 
 const DESCRIPTION =
   'Open stacked pull requests from your fork. forkstack links the stack, gives reviewers a diff of each step, and rebases the rest after every merge.'
 
-export const loader = defineHandler(() => ({ signedIn: Boolean(getUser()) }))
+// Signed-in users come here for their stacks, not the pitch.
+export const loader = defineHandler(c => {
+  if (getUser()) {
+    throw new HTTPException(302, { res: c.redirect('/dashboard') })
+  }
+})
 
 export const head = defineHead(() => ({
   title: 'Stacked pull requests from forks',
