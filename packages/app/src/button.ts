@@ -37,6 +37,10 @@ export function renderStackButton(theme: Theme): string {
   return renderButton('View stack', 'stack-16', PALETTES[theme])
 }
 
+export function renderRebaseButton(theme: Theme): string {
+  return renderButton('Rebase stack', 'sync-16', PALETTES[theme])
+}
+
 // Draws an outline button, like the dashboard's `btn-outline`.
 function renderButton(label: string, icon: string, palette: Palette) {
   const textX = PADDING + ICON_SIZE + GAP

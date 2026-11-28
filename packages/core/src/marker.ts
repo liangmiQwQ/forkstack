@@ -17,14 +17,13 @@ export function renderComment(stackId: string, stack: PullRequest[], index: numb
   const notice = mergeNotice(stack, index)
   const body = [
     ...(notice ? [notice.line] : []),
-    `This PR is in a stack (${index + 1} of ${stack.length}). Learn more about [stacked PRs created with forkstack](${STACK_DOCS_URL}). Maintainers: [merging and rebasing a stack](${MAINTAINERS_URL}).`,
+    `This PR is in a stack (${index + 1} of ${stack.length}). Learn more about [stacked PRs created with forkstack](${STACK_DOCS_URL}) and how to [merge and rebase a stack](${MAINTAINERS_URL}).`,
     renderList(stack, index),
-    ...(merged
-      ? ['Every PR in this stack has merged.']
-      : [
-          `${renderReviewButton(pr.id)} ${renderStackButton(stackId)}`,
-          "The stack's author can rebase it from the stack page."
-        ])
+    merged
+      ? 'Every PR in this stack has merged.'
+      : [renderReviewButton(pr.id), renderStackButton(stackId), renderRebaseButton(stackId)].join(
+          ' '
+        )
   ].join('\n\n')
 
   const warning = `> [!${notice?.alert ?? 'WARNING'}]\n> ${body.replaceAll('\n', '\n> ')}`
@@ -71,12 +70,19 @@ function renderList(stack: PullRequest[], index: number) {
   return [...prs.toReversed(), `- \`${stack[0].baseRef}\``].join('\n')
 }
 
-// Anyone can view the stack, while only its owner sees the rebase controls there.
 function renderStackButton(stackId: string) {
   return renderButton(
     `${SITE_URL}/stacks/${stackId}`,
     `${SITE_URL}/buttons/stack`,
     'View the stack'
+  )
+}
+
+function renderRebaseButton(stackId: string) {
+  return renderButton(
+    `${SITE_URL}/stacks/${stackId}/restack`,
+    `${SITE_URL}/buttons/rebase`,
+    'Rebase stack'
   )
 }
 

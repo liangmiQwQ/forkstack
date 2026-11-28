@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 import { defer, defineHandler, defineHead } from 'void'
-import type { InferProps } from 'void'
+import type { CloudContext, InferProps } from 'void'
 import { requireAuth } from 'void/auth'
 import { env } from 'void/env'
 import type { PageParams } from 'void/routes'
@@ -17,8 +17,11 @@ export type Props = InferProps<typeof loader>
 // The bot comment on every PR links here, so the page checks the visitor may rebase the stack before showing it.
 // Only the database reads hold back the page, and the GitHub reads stream in after it shows.
 export const loader = defineHandler(async c => {
-  const user = requireAuth(c, { throwRedirect: '/login' })
-  const stack = await findRebasableStack(c, user.id, readStackId(c))
+  const stackId = readStackId(c)
+  const user = requireAuth(c, {
+    throwRedirect: `/login?next=${encodeURIComponent(`/stacks/${stackId}/restack`)}`
+  })
+  const stack = await findRebasableStack(c, user.id, stackId)
 
   // A missing GitHub sign-in sends a 401, so it is checked before the page starts streaming.
   const [token, status] = await Promise.all([
@@ -67,6 +70,6 @@ export const actions = {
 
 export const head = defineHead(() => ({ title: 'Rebase stack' }))
 
-function readStackId(c: Parameters<typeof loader>[0]) {
+function readStackId(c: CloudContext) {
   return (c.req.param() as PageParams<'/stacks/[id]/restack'>).id
 }

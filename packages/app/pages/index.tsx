@@ -224,8 +224,9 @@ function StackComment() {
         </p>
         <p>
           This PR is in a stack (2 of 3). Learn more about{' '}
-          <span className='text-sky-700 dark:text-sky-400'>stacked PRs</span>. Maintainers:{' '}
-          <span className='text-sky-700 dark:text-sky-400'>merging and rebasing a stack</span>.
+          <span className='text-sky-700 dark:text-sky-400'>stacked PRs created with forkstack</span>{' '}
+          and how to{' '}
+          <span className='text-sky-700 dark:text-sky-400'>merge and rebase a stack</span>.
         </p>
         <ul className='flex list-disc flex-col gap-1 pl-5 marker:text-neutral-500'>
           {STACK.toReversed().map(pr => (
@@ -235,7 +236,7 @@ function StackComment() {
             <code className='font-mono text-xs'>main</code>
           </li>
         </ul>
-        <p className='flex items-center gap-2'>
+        <p className='flex flex-wrap items-center gap-2'>
           <span className='btn-outline pointer-events-none'>
             <span className='i-octicon-file-diff-16' />
             Review diff
@@ -243,6 +244,10 @@ function StackComment() {
           <span className='btn-outline pointer-events-none'>
             <span className='i-octicon-stack-16' />
             View stack
+          </span>
+          <span className='btn-outline pointer-events-none'>
+            <span className='i-octicon-sync-16' />
+            Rebase stack
           </span>
         </p>
       </div>

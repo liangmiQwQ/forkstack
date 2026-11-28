@@ -58,10 +58,10 @@ it('links maintainers to the guide for merging a stack', () => {
   expect(comment).toContain('https://forkstack.dev/docs/maintainers')
 })
 
-it('tells readers the author rebases from the stack page', () => {
+it('links readers directly to the rebase page for this stack', () => {
   const comment = renderComment('stack', [pr(1), pr(2)], 0)
 
-  expect(comment).toContain("> The stack's author can rebase it from the stack page.")
+  expect(comment).toContain('href="https://forkstack.dev/stacks/stack/restack"')
 })
 
 it('drops the links to forkstack once every PR merged, since the stack is deleted later', () => {

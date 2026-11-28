@@ -39,8 +39,9 @@ The comment on a PR lists the stack with the top PR first and the base branch la
 
 - **Review only this PR's changes**, a diff without the PRs below it.
 - **View the stack**, the stack page.
+- **Rebase stack**, the page where you can start a rebase if you have permission.
 
-The stack page is where the live state, checks and review of each PR are shown. The comment itself stays a list of the PRs and those two links.
+The stack page is where the live state, checks and review of each PR are shown.
 
 When you review, use the review link, and leave comments about a lower PR on that PR. They get fixed there and reach this PR on the next rebase.
 
