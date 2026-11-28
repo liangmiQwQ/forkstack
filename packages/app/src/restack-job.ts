@@ -9,7 +9,7 @@ import { queues } from 'void/queues'
 import { publishStatus } from './restack-live.ts'
 import { RESTACK_TIMEOUT_MS } from './restack-status.ts'
 import type { RestackStatus } from './restack-status.ts'
-import { readRebaseOptions, restack } from './restack.ts'
+import { checkSigningKey, readRebaseOptions, restack } from './restack.ts'
 import type { RestackResult } from './restack.ts'
 import { clearStackStatus } from './stack-status.ts'
 import { getStack } from './stack.ts'
@@ -54,7 +54,10 @@ async function claimRestack(stackId: string) {
 
 // Both manual entry points check live refs before claiming a job or writing its status.
 export async function requestRestack(stack: StoredStack, onMain: boolean): Promise<boolean> {
-  const options = await readRebaseOptions(stack.prs.map(pr => pr.id))
+  const options = await checkSigningKey(
+    await readRebaseOptions(stack.prs.map(pr => pr.id)),
+    stack.userId
+  )
   if (options.problem) {
     throw new HTTPException(409, { message: options.problem })
   }
@@ -117,7 +120,8 @@ export async function runRestack(
     // Merged PRs stay in the stack, since they mark where the layers above them start.
     const result = await restack(
       stack.prs.map(pr => pr.id),
-      onMain
+      onMain,
+      stack.userId
     )
     await finishRestack(stackId, claim.at, result)
   } catch (error) {

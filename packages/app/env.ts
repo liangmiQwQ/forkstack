@@ -11,5 +11,7 @@ export default defineEnv({
   GITHUB_APP_SLUG: string(),
   // WebCrypto only reads PKCS#8 keys, while GitHub hands out PKCS#1. Convert it with `openssl pkcs8 -topk8 -nocrypt -in key.pem`.
   GITHUB_APP_PRIVATE_KEY: string(),
-  GITHUB_APP_WEBHOOK_SECRET: string()
+  GITHUB_APP_WEBHOOK_SECRET: string(),
+  // Locks the signing keys users create in settings. Generate it with `openssl rand -base64 32`. Without it, web rebases stay unsigned.
+  SIGNING_KEY_SECRET: string().optional()
 })

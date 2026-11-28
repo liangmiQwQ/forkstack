@@ -10,7 +10,8 @@
     "deploy": "void deploy",
     "dev": "vp dev --strictPort",
     "postinstall": "void prepare",
-    "preview": "vp preview"
+    "preview": "vp preview",
+    "test": "vp run ctest"
   },
   "dependencies": {
     "@forkstack/core": "workspace:*",
@@ -22,6 +23,7 @@
     "@void/md": "catalog:",
     "@void/react": "catalog:",
     "hono": "catalog:",
+    "openpgp": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-error-boundary": "catalog:",

@@ -230,6 +230,9 @@ catalogs:
     open:
       specifier: ^11.0.4
       version: 11.0.4
+    openpgp:
+      specifier: ^6.3.2
+      version: 6.3.3
     oxc-transform-react:
       specifier: ^0.156.0
       version: 0.156.0
@@ -325,6 +328,9 @@ importers:
       hono:
         specifier: 'catalog:'
         version: 4.13.19
+      openpgp:
+        specifier: 'catalog:'
+        version: 6.3.3
       react:
         specifier: 'catalog:'
         version: 19.3.1
@@ -2865,6 +2871,9 @@ packages:
       drizzle-orm: '>=0.36.0'
       zod: ^3.25.0 || ^4.0.0
 
+  eckey-utils@0.7.14:
+    resolution: {integrity: sha512-s/mENS+mMnJjDSydy0muBQQHMTWJ1nPe8EiphANZrf+lv/1u35aP9WvWHTWqCBJ21blNIurGF7UoLjtaOpoCFw==}
+
   email-validator@2.0.4:
     resolution: {integrity: sha512-gYCwo7kh5S3IDyZPLZf6hSS0MnZT8QmJFqYvbqlDZSbwdZlY6QZWxJ4i/6UhITOJ4XzyI647Bm2MXKCLqnJ4nQ==}
     engines: {node: '>4.0'}
@@ -3264,6 +3273,15 @@ packages:
   open@11.0.4:
     resolution: {integrity: sha512-++Zlftm0kVLPmzC06t6epuWmcRMDbI4z5P3NNX979WA/k23+NtSOynEGzsVfZwguKw2mi5umVgnBlJQMwRz4Pg==}
     engines: {node: '>=20'}
+
+  openpgp@6.3.3:
+    resolution: {integrity: sha512-W0foQI+Zb7/TCy7Z50gqZejYe3oJkiZJ9OSV4ImuRT8MmoKOJhtAMvRm6w9STlyYluLiuezG7+0Qdqbcmmx7ig==}
+    engines: {node: '>= 18.0.0', typescript: '>= 5.0.0'}
+    peerDependencies:
+      '@openpgp/web-stream-tools': ~0.3.0
+    peerDependenciesMeta:
+      '@openpgp/web-stream-tools':
+        optional: true
 
   oxc-parser@0.153.0:
     resolution: {integrity: sha512-cEnpyyV1OJRXv++SFNw0z8i+2o/cr88rVLaOYJafELDoHM5yHvCAbwGRLvxuany6SNLcbblSMUyZaGzH+quSYg==}
@@ -5538,6 +5556,8 @@ snapshots:
       drizzle-orm: 0.45.4(@cloudflare/workers-types@5.20261120.1)(better-sqlite3@13.2.0)(kysely@0.29.9)(mysql2@3.24.6(@types/node@26.6.6))(pg@8.23.1)
       zod: 4.6.7
 
+  eckey-utils@0.7.14: {}
+
   email-validator@2.0.4: {}
 
   entities@8.1.0: {}
@@ -5925,6 +5945,10 @@ snapshots:
       is-inside-container: 1.0.0
       powershell-utils: 0.2.1
       wsl-utils: 1.0.1
+
+  openpgp@6.3.3:
+    dependencies:
+      eckey-utils: 0.7.14
 
   oxc-parser@0.153.0:
     dependencies:

@@ -12,6 +12,10 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
             <span className='i-lucide-user' />
             Account
           </Link>
+          <Link href='/settings/signing' className='nav-link'>
+            <span className='i-lucide-key-round' />
+            Signing key
+          </Link>
         </nav>
 
         <div className='min-w-0 flex-1'>{children}</div>

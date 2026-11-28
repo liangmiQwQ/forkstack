@@ -46,6 +46,12 @@ export function describeStack(
     case 'diverged': {
       return problem(`#${number(status.prId)} needs a local rebase`)
     }
+    case 'needs-signature': {
+      return problem('Needs a signing key')
+    }
+    case 'unverified': {
+      return problem('Signature not verified')
+    }
     default: {
       return problem('Last rebase failed')
     }
