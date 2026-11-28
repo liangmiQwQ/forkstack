@@ -7,6 +7,7 @@ import type { ReactNode } from 'react'
 const PAGES = [
   { href: '/docs', title: 'Getting started' },
   { href: '/docs/contributing', title: 'Contributing' },
+  { href: '/docs/maintainers', title: 'For maintainers' },
   { href: '/docs/why', title: 'Why forkstack' }
 ] as const
 

@@ -44,6 +44,6 @@ Agents still have a part to play, and forkstack gives them the context they need
 
 ## Nothing to install upstream
 
-forkstack doesn't need write access or any setup in the upstream repository. Maintainers review and merge as they always do, with any merge method. Only the contributor sets it up, on their own fork.
+forkstack doesn't need write access or any setup in the upstream repository. Maintainers review on GitHub as they always do. Merging has an order, which the [maintainers guide](/docs/maintainers) covers: the bottom PR first, with any merge method. Only the contributor sets it up, on their own fork.
 
 If you can push branches to the upstream repository, you don't need forkstack. Use GitHub's own stacked PRs with `gh stack` instead.
