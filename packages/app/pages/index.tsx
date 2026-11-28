@@ -2,8 +2,6 @@ import { Link } from '@void/react'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-import type { Props } from './index.server.ts'
-
 const REPO_URL = 'https://github.com/liangmiQwQ/forkstack'
 const INSTALL_COMMAND = 'gh extension install liangmiQwQ/gh-forkstack'
 
@@ -50,26 +48,26 @@ const CONTRIBUTOR_COMMANDS: [command: string, comment: string][] = [
   ['gh forkstack rebase', '# after main moves on']
 ]
 
-export default function IndexPage({ signedIn }: Props) {
+export default function IndexPage() {
   return (
     <>
       {/* The header and hero fill the first screen together, so the header has no rule to break it up. */}
       <div className='flex min-h-dvh flex-col'>
-        <Header signedIn={signedIn} />
-        <Hero signedIn={signedIn} />
+        <Header />
+        <Hero />
       </div>
       <main>
         <ReviewSection />
         <UpstreamSection />
         <ContributorSection />
-        <ClosingSection signedIn={signedIn} />
+        <ClosingSection />
       </main>
       <Footer />
     </>
   )
 }
 
-function Header({ signedIn }: Props) {
+function Header() {
   return (
     <header>
       <div className='mx-auto flex h-14 max-w-6xl items-center gap-1 px-6'>
@@ -84,19 +82,14 @@ function Header({ signedIn }: Props) {
         <a href={REPO_URL} className='btn-ghost' aria-label='forkstack on GitHub'>
           <span className='i-simple-icons-github' />
         </a>
-        <AccountLink signedIn={signedIn} className='btn-soft ml-2 whitespace-nowrap' />
+        <GetStartedLink className='btn-soft ml-2 whitespace-nowrap' />
       </div>
     </header>
   )
 }
 
-function AccountLink({ signedIn, className }: Props & { className: string }) {
-  return signedIn ? (
-    <Link href='/dashboard' className={className}>
-      <span className='i-lucide-layout-dashboard' />
-      Dashboard
-    </Link>
-  ) : (
+function GetStartedLink({ className }: { className: string }) {
+  return (
     <Link href='/login' className={className}>
       Get started
       <span className='i-lucide-arrow-right' />
@@ -104,7 +97,7 @@ function AccountLink({ signedIn, className }: Props & { className: string }) {
   )
 }
 
-function Hero({ signedIn }: Props) {
+function Hero() {
   return (
     <section className='mx-auto grid w-full max-w-6xl flex-1 content-center items-center gap-16 px-6 py-16 lg:grid-cols-[1fr_28rem]'>
       <div className='flex min-w-0 flex-col items-start gap-8'>
@@ -116,7 +109,7 @@ function Hero({ signedIn }: Props) {
           the rest.
         </p>
         <div className='flex flex-wrap gap-3'>
-          <AccountLink signedIn={signedIn} className='btn-solid px-4 py-2' />
+          <GetStartedLink className='btn-solid px-4 py-2' />
           <Link href='/docs/why' className='btn-outline px-4 py-2'>
             <span className='i-lucide-lightbulb' />
             Why forkstack
@@ -428,7 +421,7 @@ function Terminal({ lines }: { lines: [command: string, comment: string][] }) {
 }
 
 // Mirrors the hero at the end of the page, so readers who scrolled through have the same next steps.
-function ClosingSection({ signedIn }: Props) {
+function ClosingSection() {
   return (
     <section className='mx-auto flex max-w-6xl flex-col items-center gap-8 px-6 py-28 text-center sm:py-36'>
       <h2 className='text-4xl font-semibold tracking-[-0.03em] sm:text-5xl'>
@@ -438,7 +431,7 @@ function ClosingSection({ signedIn }: Props) {
         forkstack is free and open source, under the MIT license.
       </p>
       <div className='flex flex-wrap justify-center gap-3'>
-        <AccountLink signedIn={signedIn} className='btn-solid px-4 py-2' />
+        <GetStartedLink className='btn-solid px-4 py-2' />
         <GitHubButton className='btn-outline px-4 py-2' />
       </div>
     </section>
